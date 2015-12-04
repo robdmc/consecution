@@ -23,7 +23,7 @@ What is Consecution?
 * A good solution for creating real-time ETL systems
 * Accepts streams of data from network connections, database cursors, or stdin.
 * Guarentees that each item introduced to the system will be completely
-  processed.
+  processed even if process dies and is restarted.
 * Operates concurrently in either single-thread, multi-thread, or multi-process
   modes.
 
@@ -35,13 +35,29 @@ air_port_list | generate_all_combinations | geocode_adresses \
               | compute_distances | broadcast(databases_writer, file_writer)
 ```
 
+Ideas for other streams.
+Deductions from your paycheck.  Make stream of dollar for dollar. Make different
+branches for each deduction and join them back together.
 
+Amortized mortage.  360 payments of 1000 dollars.  Split off tax and insurance to
+their own aggregators.  Initialize principal calculator with initial mortgage.
+Each tuple get split up into two streams -- amount paid to interest and amount
+paid to principal.  Interest gets split to tax refunder. All nodes get joined to
+master aggregator.
 
+Or maybe compounded investment with a monthly fee.  Payment comes in, fee gets
+stripped out and aggregated, capital gets updated and splits off interest to its
+own aggregator. 
 
+Maybe a simple budget calculator.  Dollar comes in. Percent saving split off
+from top.  Rent aggregates till full.  Food aggregates till full.
 
+Let's say you've started a company that is now profitable and you and your
+partner are starting to extract a share of the revenue.
 
-
-Current Stage of Developement
-----
-I am still in the very early stages of figuring out how to set everything
-up.  I pushed this featureless package to pypi just to reserve the name.
+Dollar comes in and is tagged with total revenue.  This gets routed to either
+operating budget or profit distribution.  Goes through two additional nodes, one
+for you, one for your partner which add  additional tuples of tagged takes.
+Have a broadcaster with one leg to company aggregator and other leg to
+filter/router between you and your parnter's aggregator as well as total revenue
+aggregator. I LIKE THIS SCENARIO. 
