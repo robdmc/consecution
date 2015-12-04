@@ -3,11 +3,21 @@ Consecution
 
 Introduction
 ---
-I really like the way django storm processes data streams, but I'm too
-lazy to set up, configure, and maintain the jvm on my machine.
+The unix work flow of piping data between small, specialized programs has proven
+to be extremely robust.  User who adopt this work flow do so by conceptualizaing
+their computation as a stream of data flowing through a series (or
+"consecution") of processing nodes.  Stream processing frameworks like <a
+href="http://storm.apache.org/">Apache Storm</a> expand on this process by
+creating an entire network of processing nodes where data flows in only one
+direction from inputs to outputs and never loops back.  Apache storm is an
+amazing project with unmatched robustness and scalability.  However, for the
+python programmer, its use requires the inconveniece of installing, configuring,
+and maintaining a java-based project.  It would b really nice to have a
+python-only implementation of the stream processing abstraction.  Consecution has
+been designed to fill this void.
 
-This package (which has yet to be written) will implement a python-based
-stream processing library with no external dependencies.
+
+
 
 
 Current Stage of Developement
