@@ -16,6 +16,22 @@ and maintaining a java-based project.  It would b really nice to have a
 python-only implementation of the stream processing abstraction.  Consecution has
 been designed to fill this void.
 
+What is Consecution
+---
+* A robust stream-processing python library inspired by Apache Storm
+* A clean, simple abstraction for pipe-lined data processing in python
+* A good solution for creating real-time ETL systems
+* Accepts streams of data from network connections, database cursors, or stdin.
+* Guarentees that each item introduced to the system will be completely
+  processed.
+* Operates concurrently in either single-thread, multi-thread, or multi-process
+  modes.
+
+
+
+
+The first step to using consecution is to sketch out a pipeline
+
 
 
 
