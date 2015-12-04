@@ -12,11 +12,11 @@ creating an entire network of processing nodes where data flows in only one
 direction from inputs to outputs and never loops back.  Apache storm is an
 amazing project with unmatched robustness and scalability.  However, for the
 python programmer, its use requires the inconveniece of installing, configuring,
-and maintaining a java-based project.  It would b really nice to have a
+and maintaining a java-based project.  It would be really nice to have a
 python-only implementation of the stream processing abstraction.  Consecution has
-been designed to fill this void.
+been designed to meet these requirements.
 
-What is Consecution
+What is Consecution?
 ---
 * A robust stream-processing python library inspired by Apache Storm
 * A clean, simple abstraction for pipe-lined data processing in python
@@ -27,10 +27,15 @@ What is Consecution
 * Operates concurrently in either single-thread, multi-thread, or multi-process
   modes.
 
+Here is an example of a simple pipeline that will calculate all distances
+between the ten busiest airports in the United States.
+
+```bash
+air_port_list | generate_all_combinations | geocode_adresses \
+              | compute_distances | broadcast(databases_writer, file_writer)
+```
 
 
-
-The first step to using consecution is to sketch out a pipeline
 
 
 
