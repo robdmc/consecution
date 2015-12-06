@@ -61,3 +61,29 @@ for you, one for your partner which add  additional tuples of tagged takes.
 Have a broadcaster with one leg to company aggregator and other leg to
 filter/router between you and your parnter's aggregator as well as total revenue
 aggregator. I LIKE THIS SCENARIO. 
+
+
+Types of Producer Nodes
+---
+* Producer(kind='pipe'|'http'|'manual')
+
+Types of Utility Nodes
+---
+* Broadcast([node-list]):  
+* Rout([node-list], rout-func=round-robin)
+* Merge([node-list])
+* Chunk(batch-by=func-or-int)
+
+
+Robustness
+---
+* Non-robust:  no tuple tracking whatsoever
+* Confimation-only: Informs whether or not all tuples have been processed,
+                    but no information about which tuple(s) failed
+* Tracking-only: Keeps track of last N failed tuples, but does nothing else
+* Robust: Replays failed tuples through the system up to N times.
+
+
+
+
+
