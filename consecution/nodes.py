@@ -1,3 +1,5 @@
+import asyncio
+
 class BaseNode:
     def __init__(self):
         self._downstream_nodes = []
@@ -29,9 +31,9 @@ class BaseNode:
 
 
 class ManualProducer(BaseNode):
-    def __init__(self):
-        while True:
-            await self.downstream.send(await self._queue.get())
+    #def __init__(self):
+    #    while True:
+    #        await self.downstream.send(await self._queue.get())
 
     def send(self, item):
         await super(ManualProducer).send(item)
@@ -104,6 +106,3 @@ class ManualProducer(BaseNode):
 #    #    print(('a', item))
 
 
-loop = asyncio.get_event_loop()
-loop.run_until_complete(main())
-loop.close()
