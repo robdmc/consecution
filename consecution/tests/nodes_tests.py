@@ -8,10 +8,15 @@ class SimpleTest(TestCase):
         producer = ManualProducerNode()
         computer = ComputeNode(upstream=producer)
 
+        #async def start_computer():
+        #    computer.start()
+
+
         master = asyncio.gather(
             asyncio.ensure_future(computer.start()),
             asyncio.ensure_future(producer.produce_from(range(10))),
         )
+
 
         loop = asyncio.get_event_loop()
         loop.run_until_complete(master)

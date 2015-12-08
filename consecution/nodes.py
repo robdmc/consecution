@@ -4,7 +4,8 @@ class BaseNode:
     def __init__(self):
         self._downstream_nodes = []
         self._upstream_nodes = []
-        self._queue = asyncio.Queue(3)
+        self._queue = asyncio.Queue(2)
+        self._loop = asyncio.get_event_loop()
 
     @property
     def downstream(self):
@@ -27,8 +28,16 @@ class BaseNode:
     async def send(self, item):
         await self._queue.put(item)
 
+    async def complete(self):
+        await self._queue.join()
+        for child_node in self._downstream_nodes:
+            await child_node.complete()
+        print('complete done')
 
 
+
+class EndSentinal:
+    pass
 
 class ManualProducerNode(BaseNode):
     def __init__(self):
@@ -40,8 +49,12 @@ class ManualProducerNode(BaseNode):
                 'Can\'t start a producer without something to consume it')
         for value in iterable:
             print
-            print('ierating over', value)
+            print('sending', value)
             await self.downstream.send(value)
+        await self.downstream.send(EndSentinal())
+        await self.complete()
+        print('all done')
+        self._loop.stop()
 
     def send(self):
         raise NotImplementedError('Producers don\'t have send methods')
@@ -60,11 +73,39 @@ class ComputeNode(BaseNode):
     async def start(self):
         while True:
             item = await self._queue.get()
+            self._queue.task_done()
+            print('passing item', item)
+            if isinstance(item, EndSentinal):
+                print('*'*80)
+                print('breaking')
+                break
             self.process(item)
 
     def process(self, item):
         print('processing', item)
         #raise NotImplementedError('you must define a process() method')
+
+
+if __name__ == '__main__':
+    async def main():
+        producer = ManualProducerNode()
+        computer = ComputeNode(upstream=producer)
+
+        #async def start_computer():
+        #    computer.start()
+
+
+        await asyncio.gather(
+            asyncio.ensure_future(computer.start()),
+            asyncio.ensure_future(producer.produce_from(range(10))),
+        )
+
+
+loop = asyncio.get_event_loop()
+asyncio.ensure_future(main())
+loop.run_forever()
+#loop.run_until_complete(main())
+
 
 #
 #
