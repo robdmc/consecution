@@ -87,24 +87,18 @@ class ComputeNode(BaseNode):
 
 
 if __name__ == '__main__':
-    async def main():
-        producer = ManualProducerNode()
-        computer = ComputeNode(upstream=producer)
+    producer = ManualProducerNode()
+    computer = ComputeNode(upstream=producer)
 
-        #async def start_computer():
-        #    computer.start()
-
-
-        await asyncio.gather(
-            asyncio.ensure_future(computer.start()),
-            asyncio.ensure_future(producer.produce_from(range(10))),
-        )
+    master =  asyncio.gather(
+        asyncio.ensure_future(computer.start()),
+        asyncio.ensure_future(producer.produce_from(range(10))),
+    )
 
 
-loop = asyncio.get_event_loop()
-asyncio.ensure_future(main())
-loop.run_forever()
-#loop.run_until_complete(main())
+    loop = asyncio.get_event_loop()
+    asyncio.ensure_future(master)
+    loop.run_forever()
 
 
 #
