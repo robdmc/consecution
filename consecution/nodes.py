@@ -4,7 +4,7 @@ class BaseNode:
     def __init__(self):
         self._downstream_nodes = []
         self._upstream_nodes = []
-        self._queue = asyncio.Queue(5)
+        self._queue = asyncio.Queue(3)
 
     @property
     def downstream(self):
@@ -30,27 +30,42 @@ class BaseNode:
 
 
 
-class ManualProducer(BaseNode):
-    #def __init__(self):
-    #    while True:
-    #        await self.downstream.send(await self._queue.get())
+class ManualProducerNode(BaseNode):
+    def __init__(self):
+        super(ManualProducerNode, self).__init__()
 
-    def send(self, item):
-        await super(ManualProducer).send(item)
+    async def produce_from(self, iterable):
+        if not self.downstream:
+            raise ValueError(
+                'Can\'t start a producer without something to consume it')
+        for value in iterable:
+            print
+            print('ierating over', value)
+            await self.downstream.send(value)
+
+    def send(self):
+        raise NotImplementedError('Producers don\'t have send methods')
 
 
 
-#class ProcessorNode(BaseNode):
-#    def __init__(self, upstream=None, downstream=None):
-#        super(ProcessorNode, self).__init__()
-#        if upstream:
-#            self.add_upstream_node(upstream)
-#        if downstream:
-#            self.add_downstream_node(downstream)
-#
-#    async def process(self):
-#        raise NotImplementedError('you must define a process() method')
-#
+
+class ComputeNode(BaseNode):
+    def __init__(self, upstream=None, downstream=None):
+        super(ComputeNode, self).__init__()
+        if upstream:
+            self.add_upstream_node(upstream)
+        if downstream:
+            self.add_downstream_node(downstream)
+
+    async def start(self):
+        while True:
+            item = await self._queue.get()
+            self.process(item)
+
+    def process(self, item):
+        print('processing', item)
+        #raise NotImplementedError('you must define a process() method')
+
 #
 #
 #
