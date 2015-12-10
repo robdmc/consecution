@@ -92,13 +92,13 @@ Here are some thoughts on how to compose nodes and consecutors.
 branch1 = node1 | node2
 branch2 = node3 | node4
 producer | broadcast(branch1, branch2)
-merge(branch1, branch2) | node5
+dag = merge(branch1, branch2) | node5
 ```
 
 Or equivalently (if operator precedence pans out) 
 
 ```python
-producer < [
+dag = producer < [
     node1 | node2, 
     node3 | node4,
 ] > node5
@@ -110,13 +110,13 @@ Maybe this for routing
 branch1 = node1 | node2
 branch2 = node3 | node4
 producer | route(func, branch1, branch2)
-merge(branch1, branch2) | node5
+dag = merge(branch1, branch2) | node5
 ```
 
 Or equivalently (if operator precedence pans out) 
 
 ```python
-producer < [
+dag = producer < [
     route_func
     node1 | node2, 
     node3 | node4,
@@ -125,8 +125,30 @@ producer < [
 
 
 
-##option 2
-second set of options
+##Between consecutor composition
+Maybe the graph expressions above create objects of a Dag class, which may or
+may not be the same thing as a Node class.
+
+And then maybe you create consecutors like this.
+
+```
+consecutor = Consecutor(dag)
+```
+
+Or, equivalently,
+
+```
+consecutor = Consecutor(
+  producer < [
+      route_func
+      node1 | node2, 
+      node3 | node4,
+  ] > node5,
+  *args, **kwargs
+)
+```
+
+
 
 
 
