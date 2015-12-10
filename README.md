@@ -88,40 +88,40 @@ Here are some thoughts on how to compose nodes and consecutors.
 
 ##Within consecutor composition
 
-``python
+```python
 branch1 = node1 | node2
 branch2 = node3 | node4
 producer | broadcast(branch1, branch2)
 merge(branch1, branch2) | node5
-``
+```
 
 Or equivalently (if operator precedence pans out) 
 
-``python
+```python
 producer < [
     node1 | node2, 
     node3 | node4,
 ] > node5
-``
+```
 
 Maybe this for routing
 
-``python
+```python
 branch1 = node1 | node2
 branch2 = node3 | node4
 producer | route(func, branch1, branch2)
 merge(branch1, branch2) | node5
-``
+```
 
 Or equivalently (if operator precedence pans out) 
 
-``
+```python
 producer < [
     route_func
     node1 | node2, 
     node3 | node4,
 ] > node5
-``
+```
 
 
 
