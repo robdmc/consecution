@@ -86,8 +86,44 @@ Types of Utility Nodes
 #Composition
 Here are some thoughts on how to compose nodes and consecutors.
 
-##option 1
-first set of options
+##Within consecutor composition
+
+``python
+branch1 = node1 | node2
+branch2 = node3 | node4
+producer | broadcast(branch1, branch2)
+merge(branch1, branch2) | node5
+``
+
+Or equivalently (if operator precedence pans out) 
+
+``python
+producer < [
+    node1 | node2, 
+    node3 | node4,
+] > node5
+``
+
+Maybe this for routing
+
+``python
+branch1 = node1 | node2
+branch2 = node3 | node4
+producer | route(func, branch1, branch2)
+merge(branch1, branch2) | node5
+``
+
+Or equivalently (if operator precedence pans out) 
+
+``
+producer < [
+    route_func
+    node1 | node2, 
+    node3 | node4,
+] > node5
+``
+
+
 
 ##option 2
 second set of options
