@@ -99,6 +99,10 @@ Types of Utility Nodes
 * Tracking-only: Keeps track of last N failed tuples, but does nothing else
 * Robust: Replays failed tuples through the system up to N times.
 
+Maybe there is some kind of mechanism for a consecutor to route failed
+items to a specified location.  It might be nice to provide an abstraction
+for this.
+
 
 #Composition
 Here are some thoughts on how to compose nodes and consecutors.
