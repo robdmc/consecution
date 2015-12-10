@@ -148,6 +148,51 @@ consecutor = Consecutor(
 )
 ```
 
+Hmmm...  Maybe a consecutor should never include a producer.  Maybe producers
+should be wired up to consecutors.  So it would be something like
+
+```
+consecutor = Consecutor(
+  node0 < [
+      route_func
+      node1 | node2, 
+      node3 | node4,
+  ] > node5,
+  *args, **kwargs
+)
+
+```
+producer | consecutor
+```
+
+Maybe consecutors can have named producers for their output.
+
+```
+cons.output['a'] < [cons2.output['a'], cons3.output['b']] > cons4.output['a'] | cons5
+```
+
+It would be cool if these outputs could be either async or blocking.
+
+The reason I want different levels of abstraction between nodes and consecutors
+is that I want consecutors to have the notion of transaction-like guarenteed
+processing.  No such guarentee exists between consecutors.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
 
 
 
