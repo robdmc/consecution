@@ -63,9 +63,26 @@ filter/router between you and your parnter's aggregator as well as total revenue
 aggregator. I LIKE THIS SCENARIO. 
 
 
-Types of Producer Nodes
----
-* Producer(kind='pipe'|'http'|'manual')
+#Types of Producer Nodes
+Maybe define producers with an argument
+```python
+Producer(kind=pipe|tcp|http|manual|interval|scheduled, wait=timedelta, jitter=timedelta, cron_string)
+```
+
+Or maybe there are two types of producers
+
+```python
+SourcedProducer(kind=pipe|tcp|http|generator|pusher)
+
+class TimedProducer
+    def __init__(self, kind=interval|scheduled, wait=timedelta, jitter=timedelta, cron_string):
+        pass
+    
+    def process(self):
+        item = your_code_here()
+        self.downstream.send(item)
+```
+
 
 Types of Utility Nodes
 ---
@@ -176,6 +193,23 @@ The reason I want different levels of abstraction between nodes and consecutors
 is that I want consecutors to have the notion of transaction-like guarenteed
 processing.  No such guarentee exists between consecutors.
 
+
+Maybe the nodes allow for writing to consecutor output.
+
+Also.  Maybe there is some sentinal that can be sent between consecutors to
+indicate that a batch has completed.  Not sure if this would be useful.
+
+```python
+class MyNode(Node):
+    def __init__(self):
+        self.add_async_output('my_output')
+
+    def processes(item):
+        if condition_true:
+            self.async_output['my_output'].send(item)
+```
+
+Then a consecutor will search all nodes for outputs and and them to is output dict.
 
 
 
