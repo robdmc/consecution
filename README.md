@@ -75,13 +75,33 @@ Types of Utility Nodes
 * Chunk(batch-by=func-or-int)
 
 
-Robustness
----
+#Robustness
 * Non-robust:  no tuple tracking whatsoever
 * Confimation-only: Informs whether or not all tuples have been processed,
                     but no information about which tuple(s) failed
 * Tracking-only: Keeps track of last N failed tuples, but does nothing else
 * Robust: Replays failed tuples through the system up to N times.
+
+
+#Composition
+Here are some thoughts on how to compose nodes and consecutors.
+
+##option 1
+first set of options
+
+##option 2
+second set of options
+
+
+
+
+
+
+
+
+
+
+
 
 
 
