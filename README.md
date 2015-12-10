@@ -161,7 +161,6 @@ consecutor = Consecutor(
   *args, **kwargs
 )
 
-```
 producer | consecutor
 ```
 
