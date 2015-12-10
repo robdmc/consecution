@@ -131,13 +131,13 @@ may not be the same thing as a Node class.
 
 And then maybe you create consecutors like this.
 
-```
+```python
 consecutor = Consecutor(dag)
 ```
 
 Or, equivalently,
 
-```
+```python
 consecutor = Consecutor(
   producer < [
       route_func
@@ -151,7 +151,7 @@ consecutor = Consecutor(
 Hmmm...  Maybe a consecutor should never include a producer.  Maybe producers
 should be wired up to consecutors.  So it would be something like
 
-```
+```python
 consecutor = Consecutor(
   node0 < [
       route_func
@@ -166,7 +166,7 @@ producer | consecutor
 
 Maybe consecutors can have named producers for their output.
 
-```
+```python
 cons.output['a'] < [cons2.output['a'], cons3.output['b']] > cons4.output['a'] | cons5
 ```
 
@@ -191,7 +191,6 @@ processing.  No such guarentee exists between consecutors.
 
 
 
-```
 
 
 
