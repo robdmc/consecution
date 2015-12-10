@@ -80,8 +80,8 @@ class ComputeNode(BaseNode):
                 print('breaking')
                 break
             self.process(item)
-            I THINK I NEED TO DO MORE THINGS TO GET THE PROCESS TO STOP NICELY
-            ILL PROBABLY NEED TO SEND ALL MY CHILD NODES A TASK DONE
+            #I THINK I NEED TO DO MORE THINGS TO GET THE PROCESS TO STOP NICELY
+            #ILL PROBABLY NEED TO SEND ALL MY CHILD NODES A TASK DONE
 
     def process(self, item):
         print('processing', item)
