@@ -93,6 +93,8 @@ class ComputeNode(BaseNode):
             #ILL PROBABLY NEED TO SEND ALL MY CHILD NODES A TASK DONE
 
     async def process(self, item):
+        # would really like this to not be async and actually called in 
+        # a separate thread (or process) so that it can have blocking code
         print(self.name, 'processing', item)
         if self.downstream:
             await self.downstream.send(item)
