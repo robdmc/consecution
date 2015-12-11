@@ -1,11 +1,12 @@
 import asyncio
 
 class BaseNode:
-    def __init__(self):
+    def __init__(self, name=''):
         self._downstream_nodes = []
         self._upstream_nodes = []
         self._queue = asyncio.Queue(2)
         self._loop = asyncio.get_event_loop()
+        self.name = name
 
     @property
     def downstream(self):
@@ -30,26 +31,35 @@ class BaseNode:
 
     async def complete(self):
         await self._queue.join()
+        # I THINK I MIGHT WANT TO AWAIT SOMETHING HERE TO ENSURE ALL PROCESSES HAVE COMPLETED
         for child_node in self._downstream_nodes:
             await child_node.complete()
         print('complete done')
 
+    async def start(self):
+        pass
 
+    def get_starts(self):
+        starts = [self.start()]
+        for child in self._downstream_nodes:
+            starts.extend(child.get_starts())
+        return starts
 
 class EndSentinal:
     pass
 
 class ManualProducerNode(BaseNode):
-    def __init__(self):
-        super(ManualProducerNode, self).__init__()
+    def __init__(self, name=''):
+        super(ManualProducerNode, self).__init__(name=name)
 
-    async def produce_from(self, iterable):
+    def produce_from(self, iterable):
+        self.iterable = iterable
+
+    async def start(self):
         if not self.downstream:
             raise ValueError(
                 'Can\'t start a producer without something to consume it')
-        for value in iterable:
-            print
-            print('sending', value)
+        for value in self.iterable:
             await self.downstream.send(value)
         await self.downstream.send(EndSentinal())
         await self.complete()
@@ -63,8 +73,8 @@ class ManualProducerNode(BaseNode):
 
 
 class ComputeNode(BaseNode):
-    def __init__(self, upstream=None, downstream=None):
-        super(ComputeNode, self).__init__()
+    def __init__(self, upstream=None, downstream=None, name=''):
+        super(ComputeNode, self).__init__(name=name)
         if upstream:
             self.add_upstream_node(upstream)
         if downstream:
@@ -73,29 +83,28 @@ class ComputeNode(BaseNode):
     async def start(self):
         while True:
             item = await self._queue.get()
-            self._queue.task_done()
-            print('passing item', item)
             if isinstance(item, EndSentinal):
                 print('*'*80)
                 print('breaking')
                 break
-            self.process(item)
+            await self.process(item)
+            self._queue.task_done()
             #I THINK I NEED TO DO MORE THINGS TO GET THE PROCESS TO STOP NICELY
             #ILL PROBABLY NEED TO SEND ALL MY CHILD NODES A TASK DONE
 
-    def process(self, item):
-        print('processing', item)
-        #raise NotImplementedError('you must define a process() method')
+    async def process(self, item):
+        print(self.name, 'processing', item)
+        if self.downstream:
+            await self.downstream.send(item)
 
 
 if __name__ == '__main__':
-    producer = ManualProducerNode()
-    computer = ComputeNode(upstream=producer)
+    producer = ManualProducerNode(name='producer')
+    comp1 = ComputeNode(upstream=producer, name='comp1')
+    comp2 = ComputeNode(upstream=comp1, name='comp2')
 
-    master =  asyncio.gather(
-        asyncio.ensure_future(computer.start()),
-        asyncio.ensure_future(producer.produce_from(range(10))),
-    )
+    producer.produce_from(range(13))
+    master = asyncio.gather(*producer.get_starts())
 
 
     loop = asyncio.get_event_loop()
