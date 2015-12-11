@@ -1,3 +1,11 @@
+
+This Repository is highly experimental and not ready for public consumption
+===
+It is basically my thought process on creating a python tool that will make ETL type tasks much easer.
+
+Right now this README file is as much a brainstorm for myself as anything else.  Read at your own risk
+
+
 Consecution
 ===
 
