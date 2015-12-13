@@ -1,6 +1,7 @@
 import asyncio
 import time
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from functools import partial
 
 class BaseNode:
     def __init__(self, name=''):
@@ -100,38 +101,38 @@ class ComputeNode(BaseNode):
             except RuntimeError:
                 raise
 
-
-    def push(self, item):
+    async def push(self, item):
         if self.downstream:
             print('{} waiting till push completes'.format(self.name))
-            #self.
-            #self._loop.run_until_complete(self.downstream.send(item))
-            #await syncio.run_coroutine_threadsafe(self.downstream.send(item))
+            self.downstream.send(item)
             print('{} push done'.format(self.name))
 
-    async def process_runner(self, item):
-        print('{} starting process runner'.format(self.name))
-        await self._loop.run_in_executor(self.executor, self.process, item)
+    async def execute(self, function, *args, **kwargs):
+        task = self._loop.run_in_executor(self.executor, item, item)
+        func_to_exec = partial(function, *args, **kwargs)
+        return await self._loop.run_in_executor(self.executor, funct_to_exec)
+
+    async def process(self, item):
+
+        @self.parallel
+        def my_blocking_code1(item):
+            print('{} start myblocking 1 with {}'.format(self.name, item))
+            time.sleep(1)
+            print('{} done myblocking 1 with {}'.format(self.name, item))
+            return 'result1'
+
+        @self.parallel
+        def my_blocking_code2(item):
+            print('{} start myblocking 2 with {}'.format(self.name, item))
+            time.sleep(1)
+            print('{} done myblocking 2 with {}'.format(self.name, item))
+            return 'result2'
+
+        res1 = await self.execute(my_blocking_code1, item)
+        res2 = await self.execute(my_blocking_code2, item)
+        await self.push((item, res1, res2))
 
 
-
-
-    def process(self, item):
-
-        @self.in_parallel
-        def my_blocking_code(item):
-            time.sleep()
-
-        await asyncio.gather(all my block code)
-
-
-        #print('{} starting process'.format(self.name))
-        #nn = self.sleep_seconds if self.sleep_seconds else 0
-        #print('  ' * int(10 * nn) + self.name, 'processing', item)
-        #time.sleep(1)
-        #print('{} pushing'.format(self.name))
-        #self.push(item)
-        #print(' {} done pushing'.format(self.name))
 
 
 
