@@ -31,10 +31,8 @@ class BaseNode:
 
     async def complete(self):
         await self._queue.join()
-        # I THINK I MIGHT WANT TO AWAIT SOMETHING HERE TO ENSURE ALL PROCESSES HAVE COMPLETED
         for child_node in self._downstream_nodes:
             await child_node.complete()
-        print('complete done')
 
     async def start(self):
         pass
@@ -46,7 +44,9 @@ class BaseNode:
         return starts
 
 class EndSentinal:
-    pass
+    def __str__(self):
+        return 'sentinal'
+
 
 class ManualProducerNode(BaseNode):
     def __init__(self, name=''):
@@ -63,7 +63,6 @@ class ManualProducerNode(BaseNode):
             await self.downstream.send(value)
         await self.downstream.send(EndSentinal())
         await self.complete()
-        print('all done')
         self._loop.stop()
 
     def send(self):
@@ -73,8 +72,9 @@ class ManualProducerNode(BaseNode):
 
 
 class ComputeNode(BaseNode):
-    def __init__(self, upstream=None, downstream=None, name=''):
+    def __init__(self, upstream=None, downstream=None, name='', sleep=None):
         super(ComputeNode, self).__init__(name=name)
+        self.sleep = sleep
         if upstream:
             self.add_upstream_node(upstream)
         if downstream:
@@ -82,30 +82,41 @@ class ComputeNode(BaseNode):
 
     async def start(self):
         while True:
-            item = await self._queue.get()
-            if isinstance(item, EndSentinal):
-                print('*'*80)
-                print('breaking')
-                break
-            await self.process(item)
-            self._queue.task_done()
-            #I THINK I NEED TO DO MORE THINGS TO GET THE PROCESS TO STOP NICELY
-            #ILL PROBABLY NEED TO SEND ALL MY CHILD NODES A TASK DONE
+            try:
+                item = await self._queue.get()
+                if isinstance(item, EndSentinal):
+                    if self.downstream:
+                        await self.downstream.send(item)
+                    self._queue.task_done()
+                    break
+                else:
+                    await self.process(item)
+                    self._queue.task_done()
+            except RuntimeError:
+                raise
+
 
     async def process(self, item):
         # would really like this to not be async and actually called in 
         # a separate thread (or process) so that it can have blocking code
-        print(self.name, 'processing', item)
+        nn = self.sleep if self.sleep else 0
+        print('  ' * int(10 * nn) + self.name, 'processing', item)
         if self.downstream:
+            if self.sleep:
+                await asyncio.sleep(self.sleep)
             await self.downstream.send(item)
 
 
 if __name__ == '__main__':
     producer = ManualProducerNode(name='producer')
-    comp1 = ComputeNode(upstream=producer, name='comp1')
-    comp2 = ComputeNode(upstream=comp1, name='comp2')
+    n_comps = 2
+    parent = producer
+    for nn in range(n_comps):
+        parent = ComputeNode(upstream=parent, name='comp{:02d}'.format(nn + 1), sleep=.1 * nn)
+    #comp1 = ComputeNode(upstream=producer, name='comp1')
+    #comp2 = ComputeNode(upstream=comp1, name='comp2')
 
-    producer.produce_from(range(13))
+    producer.produce_from(range(3))
     master = asyncio.gather(*producer.get_starts())
 
 
