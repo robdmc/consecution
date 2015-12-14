@@ -128,6 +128,14 @@ class ComputeNode(BaseNode):
         return self._loop.run_in_executor(self.executor, func_to_exec)
 
     async def process(self, item):
+
+
+
+        #SOMETHING VERY WIERD IS GOING ON HERE.  EXPERIMENT WITH
+        #SOME SUPER SIMPLE COROUTINES TO SEE HOW AWAIT HANDLES EXCEPTIONS
+
+
+
         raise ValueError('my async error')
         my_var = 'silly'
 
