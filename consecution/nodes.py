@@ -114,7 +114,15 @@ class ComputeNode(BaseNode):
             await self.downstream.send(item)
 
     async def execute(self, function, *args, **kwargs):
-        func_to_exec = partial(function, *args, **kwargs)
+
+        def error_wrapper(*args, **kwargs):
+            print('though wrapper in execute')
+            try:
+                return function(*args, **kwargs)
+            except:
+                return sys.exc_info()
+
+        func_to_exec = partial(error_wrapper, *args, **kwargs)
         return self._loop.run_in_executor(self.executor, func_to_exec)
 
     async def process(self, item):
@@ -129,7 +137,7 @@ class ComputeNode(BaseNode):
             print('{} executing block2 on {}'.format(name, item))
             #raise ValueError('my error')
             #time.sleep(1)
-            return 'result2'
+            return ('result2', self.name, item)
 
         def wrapper1(name, item):
             print('though wrapper')
@@ -137,60 +145,20 @@ class ComputeNode(BaseNode):
                 return my_blocking_code1(name, item)
             except:
                 return sys.exc_info()
-        #def my_blocking_code1(name, item):
-        #    print('{} executing block1 on {}'.format(name, item))
-        #    time.sleep(1)
-        #    raise ValueError('my value error')
-        #    return 'result1'
 
-        #def my_blocking_code2(name, item):
-        #    print('{} executing block2 on {}'.format(name, item))
-        #    time.sleep(1)
-        #    raise ValueError('my value error')
-        #    return 'result2'
-
-        task1 = self.execute(wrapper1, self.name, item)
+        task1 = self.execute(my_blocking_code1, self.name, item)
         task2 = self.execute(my_blocking_code2, self.name, item)
-        #for f in asyncio.as_completed([task1, task2]):
-        #    g = await f
-        #    s = g.result(timeout=1)
-        #    #print('g = ', dir(g))
-        #    #print('done = ', g.done())
-        #    #print(res.execption())
         results = await asyncio.gather(task1, task2, return_exceptions=True)
         for res in results:
             x = await res
             print(x)
-            #print(res.result())
-        #for fut in 
-        #for result in results:
-        #    val = result.result()
-        #    print('*'*80)
-        #    print(result)
-        #    print('*'*80)
-        #    print()
-
-        #await self.push((item, res1, res2))
         await self.push(item)
-
-
-#def my_blocking_code1(name, item):
-#    print('{} executing block1 on {}'.format(name, item))
-#    time.sleep(1)
-#    return 'result1'
-#
-#def my_blocking_code2(name, item):
-#    print('{} executing block2 on {}'.format(name, item))
-#    raise ValueError('my error')
-#    time.sleep(1)
-#    return 'result2'
-
 
 
 
 if __name__ == '__main__':
     producer = ManualProducerNode(name='producer')
-    n_comps = 1
+    n_comps = 2
     parent = producer
     for nn in range(n_comps):
         parent = ComputeNode(upstream=parent, name='comp{:02d}'.format(nn + 1), sleep_seconds=.1 * nn)
