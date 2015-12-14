@@ -104,7 +104,9 @@ class ComputeNode(BaseNode):
                     self._queue.task_done()
                     break
                 else:
+                    print('starting process')
                     await self.process(item)
+                    print('done process')
                     self._queue.task_done()
             except RuntimeError:
                 raise
@@ -126,6 +128,7 @@ class ComputeNode(BaseNode):
         return self._loop.run_in_executor(self.executor, func_to_exec)
 
     async def process(self, item):
+        raise ValueError('my async error')
         my_var = 'silly'
 
         def my_blocking_code1(name, item):
@@ -140,12 +143,13 @@ class ComputeNode(BaseNode):
             return ('result2', self.name, item)
 
 
-        task1 = self.execute(my_blocking_code1, self.name, item)
-        task2 = self.execute(my_blocking_code2, self.name, item)
-        results = await asyncio.gather(task1, task2, return_exceptions=True)
-        for res in results:
-            x = await res
-            print(x)
+        #task1 = self.execute(my_blocking_code1, self.name, item)
+        #task2 = self.execute(my_blocking_code2, self.name, item)
+        #results = await asyncio.gather(task1, task2, return_exceptions=True)
+        #for res in results:
+        #    x = await res
+        #    print(x)
+        raise ValueError('my async error')
         await self.push(item)
 
 
