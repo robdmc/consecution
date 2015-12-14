@@ -139,12 +139,6 @@ class ComputeNode(BaseNode):
             #time.sleep(1)
             return ('result2', self.name, item)
 
-        def wrapper1(name, item):
-            print('though wrapper')
-            try:
-                return my_blocking_code1(name, item)
-            except:
-                return sys.exc_info()
 
         task1 = self.execute(my_blocking_code1, self.name, item)
         task2 = self.execute(my_blocking_code2, self.name, item)
