@@ -1,17 +1,25 @@
 import asyncio
+import pickle
+import sys
 import time
+import inspect
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from functools import partial
 
+
 class BaseNode:
+    #executor = ProcessPoolExecutor(max_workers=10)
+    executor = ThreadPoolExecutor(max_workers=10)
+
     def __init__(self, name=''):
         self._downstream_nodes = []
         self._upstream_nodes = []
         self._queue = asyncio.Queue(2)
         self._loop = asyncio.get_event_loop()
+        #self._loop.set_debug(True)
         self.name = name
-        self.executor = ThreadPoolExecutor(max_workers=1)
-        #self.executor = ProcessPoolExecutor(max_workers=1)
+        #self.executor = ThreadPoolExecutor(max_workers=10)
+        #self.executor = ProcessPoolExecutor(max_workers=10)
 
     @property
     def downstream(self):
@@ -32,7 +40,6 @@ class BaseNode:
             other._downstream_nodes.extend([self])
 
     async def send(self, item):
-        print('{} send called with {}'.format(self.name, item))
         await self._queue.put(item)
 
     async def complete(self):
@@ -96,54 +103,99 @@ class ComputeNode(BaseNode):
                     self._queue.task_done()
                     break
                 else:
-                    await self.process_runner(item)
+                    await self.process(item)
                     self._queue.task_done()
             except RuntimeError:
                 raise
 
     async def push(self, item):
         if self.downstream:
-            print('{} waiting till push completes'.format(self.name))
-            self.downstream.send(item)
-            print('{} push done'.format(self.name))
+            await self.downstream.send(item)
 
     async def execute(self, function, *args, **kwargs):
-        task = self._loop.run_in_executor(self.executor, item, item)
         func_to_exec = partial(function, *args, **kwargs)
-        return await self._loop.run_in_executor(self.executor, funct_to_exec)
+        return self._loop.run_in_executor(self.executor, func_to_exec)
 
     async def process(self, item):
+        my_var = 'silly'
 
-        @self.parallel
-        def my_blocking_code1(item):
-            print('{} start myblocking 1 with {}'.format(self.name, item))
-            time.sleep(1)
-            print('{} done myblocking 1 with {}'.format(self.name, item))
-            return 'result1'
+        def my_blocking_code1(name, item):
+            try:
+                time.sleep(1)
+                #for nn in range(1000000):
+                #    x = nn ** (1/4.)
+                print('{} executing block1 on {}'.format(name, item))
+                raise ValueError('my error')
+                return 'result1'
+            except:
+                return sys.exc_info()
+                return 'Error Was Raised'
 
-        @self.parallel
-        def my_blocking_code2(item):
-            print('{} start myblocking 2 with {}'.format(self.name, item))
-            time.sleep(1)
-            print('{} done myblocking 2 with {}'.format(self.name, item))
+        def my_blocking_code2(name, item):
+            print('{} executing block2 on {}'.format(name, item))
+            #raise ValueError('my error')
+            #time.sleep(1)
             return 'result2'
 
-        res1 = await self.execute(my_blocking_code1, item)
-        res2 = await self.execute(my_blocking_code2, item)
-        await self.push((item, res1, res2))
+        #def my_blocking_code1(name, item):
+        #    print('{} executing block1 on {}'.format(name, item))
+        #    time.sleep(1)
+        #    raise ValueError('my value error')
+        #    return 'result1'
 
+        #def my_blocking_code2(name, item):
+        #    print('{} executing block2 on {}'.format(name, item))
+        #    time.sleep(1)
+        #    raise ValueError('my value error')
+        #    return 'result2'
+
+        task1 = self.execute(my_blocking_code1, self.name, item)
+        task2 = self.execute(my_blocking_code2, self.name, item)
+        #for f in asyncio.as_completed([task1, task2]):
+        #    g = await f
+        #    s = g.result(timeout=1)
+        #    #print('g = ', dir(g))
+        #    #print('done = ', g.done())
+        #    #print(res.execption())
+        results = await asyncio.gather(task1, task2, return_exceptions=True)
+        for res in results:
+            x = await res
+            print(x)
+            #print(res.result())
+        #for fut in 
+        #for result in results:
+        #    val = result.result()
+        #    print('*'*80)
+        #    print(result)
+        #    print('*'*80)
+        #    print()
+
+        #await self.push((item, res1, res2))
+        await self.push(item)
+
+
+#def my_blocking_code1(name, item):
+#    print('{} executing block1 on {}'.format(name, item))
+#    time.sleep(1)
+#    return 'result1'
+#
+#def my_blocking_code2(name, item):
+#    print('{} executing block2 on {}'.format(name, item))
+#    raise ValueError('my error')
+#    time.sleep(1)
+#    return 'result2'
 
 
 
 
 if __name__ == '__main__':
     producer = ManualProducerNode(name='producer')
-    n_comps = 2
+    n_comps = 1
     parent = producer
     for nn in range(n_comps):
         parent = ComputeNode(upstream=parent, name='comp{:02d}'.format(nn + 1), sleep_seconds=.1 * nn)
 
-    producer.produce_from(range(3))
+    producer.produce_from(range(1))
     master = asyncio.gather(*producer.get_starts())
 
 
