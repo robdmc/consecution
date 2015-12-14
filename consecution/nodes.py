@@ -1,3 +1,4 @@
+import traceback
 import asyncio
 import pickle
 import sys
@@ -120,16 +121,9 @@ class ComputeNode(BaseNode):
         my_var = 'silly'
 
         def my_blocking_code1(name, item):
-            try:
-                time.sleep(1)
-                #for nn in range(1000000):
-                #    x = nn ** (1/4.)
-                print('{} executing block1 on {}'.format(name, item))
-                raise ValueError('my error')
-                return 'result1'
-            except:
-                return sys.exc_info()
-                return 'Error Was Raised'
+            time.sleep(1)
+            print('{} executing block1 on {}'.format(name, item))
+            raise ValueError('my error')
 
         def my_blocking_code2(name, item):
             print('{} executing block2 on {}'.format(name, item))
@@ -137,6 +131,12 @@ class ComputeNode(BaseNode):
             #time.sleep(1)
             return 'result2'
 
+        def wrapper1(name, item):
+            print('though wrapper')
+            try:
+                return my_blocking_code1(name, item)
+            except:
+                return sys.exc_info()
         #def my_blocking_code1(name, item):
         #    print('{} executing block1 on {}'.format(name, item))
         #    time.sleep(1)
@@ -149,7 +149,7 @@ class ComputeNode(BaseNode):
         #    raise ValueError('my value error')
         #    return 'result2'
 
-        task1 = self.execute(my_blocking_code1, self.name, item)
+        task1 = self.execute(wrapper1, self.name, item)
         task2 = self.execute(my_blocking_code2, self.name, item)
         #for f in asyncio.as_completed([task1, task2]):
         #    g = await f
