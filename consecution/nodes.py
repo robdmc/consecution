@@ -17,10 +17,7 @@ class BaseNode:
         self._upstream_nodes = []
         self._queue = asyncio.Queue(2)
         self._loop = asyncio.get_event_loop()
-        #self._loop.set_debug(True)
         self.name = name
-        #self.executor = ThreadPoolExecutor(max_workers=10)
-        #self.executor = ProcessPoolExecutor(max_workers=10)
 
     @property
     def downstream(self):
@@ -104,9 +101,7 @@ class ComputeNode(BaseNode):
                     self._queue.task_done()
                     break
                 else:
-                    print('starting process')
                     await self.process(item)
-                    print('done process')
                     self._queue.task_done()
             except RuntimeError:
                 raise
@@ -116,33 +111,26 @@ class ComputeNode(BaseNode):
             await self.downstream.send(item)
 
     async def execute(self, function, *args, **kwargs):
+        """
+        returns succeeded, result
+        """
 
         def error_wrapper(*args, **kwargs):
-            print('though wrapper in execute')
             try:
-                return function(*args, **kwargs)
+                return (True, function(*args, **kwargs))
             except:
-                return sys.exc_info()
+                return (False, sys.exc_info())
 
         func_to_exec = partial(error_wrapper, *args, **kwargs)
         return self._loop.run_in_executor(self.executor, func_to_exec)
 
     async def process(self, item):
 
-
-
-        #SOMETHING VERY WIERD IS GOING ON HERE.  EXPERIMENT WITH
-        #SOME SUPER SIMPLE COROUTINES TO SEE HOW AWAIT HANDLES EXCEPTIONS
-
-
-
-        raise ValueError('my async error')
         my_var = 'silly'
 
         def my_blocking_code1(name, item):
             time.sleep(1)
             print('{} executing block1 on {}'.format(name, item))
-            raise ValueError('my error')
 
         def my_blocking_code2(name, item):
             print('{} executing block2 on {}'.format(name, item))
@@ -151,20 +139,21 @@ class ComputeNode(BaseNode):
             return ('result2', self.name, item)
 
 
-        #task1 = self.execute(my_blocking_code1, self.name, item)
-        #task2 = self.execute(my_blocking_code2, self.name, item)
-        #results = await asyncio.gather(task1, task2, return_exceptions=True)
-        #for res in results:
-        #    x = await res
-        #    print(x)
-        raise ValueError('my async error')
+        task1 = self.execute(my_blocking_code1, self.name, item)
+        task2 = self.execute(my_blocking_code2, self.name, item)
+        futures = await asyncio.gather(task1, task2)
+        results = []
+        for res in futures:
+            succeeded, val = await res
+            results.append(val)
+        print(results)
         await self.push(item)
 
 
 
 if __name__ == '__main__':
     producer = ManualProducerNode(name='producer')
-    n_comps = 2
+    n_comps = 1
     parent = producer
     for nn in range(n_comps):
         parent = ComputeNode(upstream=parent, name='comp{:02d}'.format(nn + 1), sleep_seconds=.1 * nn)
