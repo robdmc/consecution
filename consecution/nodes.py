@@ -110,7 +110,7 @@ class ComputeNode(BaseNode):
         if self.downstream:
             await self.downstream.send(item)
 
-    async def execute(self, function, *args, **kwargs):
+    async def make_task(self, function, *args, **kwargs):
         """
         returns succeeded, result
         """
@@ -124,6 +124,29 @@ class ComputeNode(BaseNode):
         func_to_exec = partial(error_wrapper, *args, **kwargs)
         return self._loop.run_in_executor(self.executor, func_to_exec)
 
+    async def run_parallel(self, *tasks, log_errors=True):
+        """
+        may want to take log_errors from a class variable instead of
+        a function argument
+        """
+        futures = await asyncio.gather(*tasks)
+        results = []
+        for result in futures:
+            #succeeded, val = await res
+            results.append(await result)
+        if log_errors:
+            for (success, value) in results:
+                if not success:
+                    print('-' * 80, file=sys.stderr)
+                    traceback.print_tb(value[2], file=sys.stderr)
+                    print(file=sys.stderr)
+                    print(value[0], file=sys.stderr)
+                    print(value[1], file=sys.stderr)
+                    print('-' * 80, file=sys.stderr)
+
+        return results
+
+
     async def process(self, item):
 
         my_var = 'silly'
@@ -131,23 +154,40 @@ class ComputeNode(BaseNode):
         def my_blocking_code1(name, item):
             time.sleep(1)
             print('{} executing block1 on {}'.format(name, item))
+            #return 'ret_from_block1'
 
         def my_blocking_code2(name, item):
             print('{} executing block2 on {}'.format(name, item))
             #raise ValueError('my error')
-            #time.sleep(1)
+            1 / 0
+            time.sleep(1)
             return ('result2', self.name, item)
 
 
-        task1 = self.execute(my_blocking_code1, self.name, item)
-        task2 = self.execute(my_blocking_code2, self.name, item)
-        futures = await asyncio.gather(task1, task2)
-        results = []
-        for res in futures:
-            succeeded, val = await res
-            results.append(val)
-        print(results)
+        """
+        I don't like the name make_task.  I want to find other language
+        for this that doesn't overlap with asyncio names.
+        maybe self.parallel_wrap
+        or    self.make_parallel
+        or self.in_parallel
+        """
+
+        task1 = self.make_task(my_blocking_code1, self.name, item)
+        task2 = self.make_task(my_blocking_code2, self.name, item)
+
+        results = await self.run_parallel(task1, task2)
+        for res in results:
+            print(res)
+
         await self.push(item)
+
+        """
+        Got decent error handling in the executed function.
+        Next step is to nicely handle errors in this process function
+        Maybe make the error logging a class-based thing.
+
+        Would like to see how things work for processes as well as threads
+        """
 
 
 
