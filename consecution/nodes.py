@@ -15,14 +15,6 @@ def log_errors(exc_info_tup):
     print(exc_info_tup[1], file=sys.stderr)
     print('-' * 80, file=sys.stderr)
 
-#def error_wrapper(function, *args, **kwargs):
-#    try:
-#        return (True, function(*args, **kwargs))
-#    except:
-#        log_errors(sys.exc_info())
-#        return (False, sys.exc_info())
-
-
 class BaseNode:
     #executor = ProcessPoolExecutor(max_workers=10)
     executor = ThreadPoolExecutor(max_workers=10)
@@ -43,13 +35,13 @@ class BaseNode:
     def upstream(self):
         return self._upstream_nodes[0] if self._upstream_nodes else None
 
-    def _error_wrapper(self, function, *args, **kwargs):
-            try:
-                return (True, function(*args, **kwargs))
-            except:
-                if self._log_errors:
-                    log_errors(sys.exc_info())
-                return (False, sys.exc_info())
+    #def _error_wrapper(self, function, *args, **kwargs):
+    #        try:
+    #            return (True, function(*args, **kwargs))
+    #        except:
+    #            if self._log_errors:
+    #                log_errors(sys.exc_info())
+    #            return (False, sys.exc_info())
 
     def add_downstream_node(self, *other_nodes):
         self._downstream_nodes.extend(other_nodes)
@@ -143,7 +135,16 @@ class ComputeNode(BaseNode):
         """
         returns succeeded, result
         """
-        func_to_exec = partial(self._error_wrapper, function, *args, **kwargs)
+
+        def error_wrapper(*args, **kwargs):
+                try:
+                    return (True, function(*args, **kwargs))
+                except:
+                    if self._log_errors:
+                        log_errors(sys.exc_info())
+                    return (False, sys.exc_info())
+
+        func_to_exec = partial(error_wrapper, *args, **kwargs)
         return self._loop.run_in_executor(self.executor, func_to_exec)
 
     async def run_parallel(self, *tasks, log_errors=True):
