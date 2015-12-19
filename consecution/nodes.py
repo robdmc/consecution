@@ -7,16 +7,32 @@ import inspect
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from functools import partial
 
+def log_errors(exc_info_tup):
+    print('-' * 80, file=sys.stderr)
+    traceback.print_tb(exc_info_tup[2], file=sys.stderr)
+    print(file=sys.stderr)
+    print(exc_info_tup[0], file=sys.stderr)
+    print(exc_info_tup[1], file=sys.stderr)
+    print('-' * 80, file=sys.stderr)
+
+#def error_wrapper(function, *args, **kwargs):
+#    try:
+#        return (True, function(*args, **kwargs))
+#    except:
+#        log_errors(sys.exc_info())
+#        return (False, sys.exc_info())
+
 
 class BaseNode:
     #executor = ProcessPoolExecutor(max_workers=10)
     executor = ThreadPoolExecutor(max_workers=10)
 
-    def __init__(self, name=''):
+    def __init__(self, name='', log_errors=True, loop=None):
         self._downstream_nodes = []
         self._upstream_nodes = []
         self._queue = asyncio.Queue(2)
-        self._loop = asyncio.get_event_loop()
+        self._loop = loop if loop else asyncio.get_event_loop()
+        self._log_errors = log_errors
         self.name = name
 
     @property
@@ -26,6 +42,14 @@ class BaseNode:
     @property
     def upstream(self):
         return self._upstream_nodes[0] if self._upstream_nodes else None
+
+    def _error_wrapper(self, function, *args, **kwargs):
+            try:
+                return (True, function(*args, **kwargs))
+            except:
+                if self._log_errors:
+                    log_errors(sys.exc_info())
+                return (False, sys.exc_info())
 
     def add_downstream_node(self, *other_nodes):
         self._downstream_nodes.extend(other_nodes)
@@ -60,8 +84,10 @@ class EndSentinal:
 
 
 class ManualProducerNode(BaseNode):
-    def __init__(self, name=''):
-        super(ManualProducerNode, self).__init__(name=name)
+    def __init__(self, name='', log_errors=True, loop=None):
+        super(ManualProducerNode, self).__init__(
+            name='', log_errors=log_errors, loop=loop
+        )
 
     def produce_from(self, iterable):
         self.iterable = iterable
@@ -83,8 +109,11 @@ class ManualProducerNode(BaseNode):
 
 
 class ComputeNode(BaseNode):
-    def __init__(self, upstream=None, downstream=None, name='', sleep_seconds=None):
-        super(ComputeNode, self).__init__(name=name)
+    def __init__(
+            self, name='', log_errors=True, loop=None, upstream=None,
+            downstream=None, sleep_seconds=None):
+        super(ComputeNode, self).__init__(
+            name=name, log_errors=log_errors, loop=loop)
         self.sleep_seconds = sleep_seconds
         if upstream:
             self.add_upstream_node(upstream)
@@ -114,14 +143,7 @@ class ComputeNode(BaseNode):
         """
         returns succeeded, result
         """
-
-        def error_wrapper(*args, **kwargs):
-            try:
-                return (True, function(*args, **kwargs))
-            except:
-                return (False, sys.exc_info())
-
-        func_to_exec = partial(error_wrapper, *args, **kwargs)
+        func_to_exec = partial(self._error_wrapper, function, *args, **kwargs)
         return self._loop.run_in_executor(self.executor, func_to_exec)
 
     async def run_parallel(self, *tasks, log_errors=True):
@@ -132,18 +154,7 @@ class ComputeNode(BaseNode):
         futures = await asyncio.gather(*tasks)
         results = []
         for result in futures:
-            #succeeded, val = await res
             results.append(await result)
-        if log_errors:
-            for (success, value) in results:
-                if not success:
-                    print('-' * 80, file=sys.stderr)
-                    traceback.print_tb(value[2], file=sys.stderr)
-                    print(file=sys.stderr)
-                    print(value[0], file=sys.stderr)
-                    print(value[1], file=sys.stderr)
-                    print('-' * 80, file=sys.stderr)
-
         return results
 
 
