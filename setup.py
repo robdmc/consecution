@@ -30,7 +30,14 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Topic :: Distributed Computing',
     ],
-    #install_requires = [],
+    install_requires = [
+        'django>=1.7',
+    ],
+    tests_require=[
+        'django-nose>=1.4',
+        'mock==1.0.1',
+        'coverage>=3.7.1',
+    ],
     #entry_points={
     #    'console_scripts': [
     #    ],
