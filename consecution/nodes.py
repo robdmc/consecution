@@ -8,12 +8,12 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from functools import partial
 
 def log_errors(exc_info_tup):
-    print('-' * 80, file=sys.stderr)
+    print('v' * 78, file=sys.stderr)
     traceback.print_tb(exc_info_tup[2], file=sys.stderr)
     print(file=sys.stderr)
     print(exc_info_tup[0], file=sys.stderr)
     print(exc_info_tup[1], file=sys.stderr)
-    print('-' * 80, file=sys.stderr)
+    print('^' * 78, file=sys.stderr)
 
 class BaseNode:
     #executor = ProcessPoolExecutor(max_workers=10)
@@ -114,7 +114,7 @@ class ComputeNode(BaseNode):
 
     async def start(self):
         while True:
-            try:
+            try:  # experiment with removing this try block 'cause I don't remember why it's here
                 item = await self._queue.get()
                 if isinstance(item, EndSentinal):
                     if self.downstream:
@@ -122,8 +122,14 @@ class ComputeNode(BaseNode):
                     self._queue.task_done()
                     break
                 else:
-                    await self.process(item)
-                    self._queue.task_done()
+                    try:
+                        await self.process(item)
+                        self._queue.task_done()
+                    except:
+                        self._queue.task_done()
+                        if self._log_errors:
+                            log_errors(sys.exc_info())
+
             except RuntimeError:
                 raise
 
@@ -170,8 +176,6 @@ class ComputeNode(BaseNode):
 
         def my_blocking_code2(name, item):
             print('{} executing block2 on {}'.format(name, item))
-            #raise ValueError('my error')
-            1 / 0
             time.sleep(1)
             return ('result2', self.name, item)
 
@@ -183,6 +187,7 @@ class ComputeNode(BaseNode):
         or    self.make_parallel
         or self.in_parallel
         """
+
 
         task1 = self.make_task(my_blocking_code1, self.name, item)
         task2 = self.make_task(my_blocking_code2, self.name, item)
