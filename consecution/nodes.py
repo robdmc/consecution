@@ -45,7 +45,7 @@ class BaseNode:
         for other in other_nodes:
             other._downstream_nodes.extend([self])
 
-    async def send(self, item):
+    async def add_to_queue(self, item):
         await self._queue.put(item)
 
     async def complete(self):
@@ -59,7 +59,7 @@ class BaseNode:
                 item = await self._queue.get()
                 if isinstance(item, EndSentinal):
                     if self.downstream:
-                        await self.downstream.send(item)
+                        await self.downstream.add_to_queue(item)
                     self._queue.task_done()
                     break
                 else:
@@ -100,12 +100,12 @@ class ManualProducerNode(BaseNode):
             raise ValueError(
                 'Can\'t start a producer without something to consume it')
         for value in self.iterable:
-            await self.downstream.send(value)
-        await self.downstream.send(EndSentinal())
+            await self.downstream.add_to_queue(value)
+        await self.downstream.add_to_queue(EndSentinal())
         await self.complete()
         self._loop.stop()
 
-    def send(self):
+    def add_to_queue(self):
         raise NotImplementedError('Producers don\'t have send methods')
 
 
@@ -123,7 +123,7 @@ class ComputeNode(BaseNode):
 
     async def push(self, item):
         if self.downstream:
-            await self.downstream.send(item)
+            await self.downstream.add_to_queue(item)
 
     async def make_task(self, function, *args, **kwargs):
         """
