@@ -35,14 +35,6 @@ class BaseNode:
     def upstream(self):
         return self._upstream_nodes[0] if self._upstream_nodes else None
 
-    #def _error_wrapper(self, function, *args, **kwargs):
-    #        try:
-    #            return (True, function(*args, **kwargs))
-    #        except:
-    #            if self._log_errors:
-    #                log_errors(sys.exc_info())
-    #            return (False, sys.exc_info())
-
     def add_downstream_node(self, *other_nodes):
         self._downstream_nodes.extend(other_nodes)
         for other in other_nodes:
@@ -62,7 +54,26 @@ class BaseNode:
             await child_node.complete()
 
     async def start(self):
-        pass
+        while True:
+            try:  # experiment with removing this try block 'cause I don't remember why it's here
+                item = await self._queue.get()
+                if isinstance(item, EndSentinal):
+                    if self.downstream:
+                        await self.downstream.send(item)
+                    self._queue.task_done()
+                    break
+                else:
+                    try:
+                        await self.process(item)
+                        self._queue.task_done()
+                    except:
+                        self._queue.task_done()
+                        if self._log_errors:
+                            log_errors(sys.exc_info())
+
+            except RuntimeError:
+                raise
+
 
     def get_starts(self):
         starts = [self.start()]
@@ -98,8 +109,6 @@ class ManualProducerNode(BaseNode):
         raise NotImplementedError('Producers don\'t have send methods')
 
 
-
-
 class ComputeNode(BaseNode):
     def __init__(
             self, name='', log_errors=True, loop=None, upstream=None,
@@ -111,27 +120,6 @@ class ComputeNode(BaseNode):
             self.add_upstream_node(upstream)
         if downstream:
             self.add_downstream_node(downstream)
-
-    async def start(self):
-        while True:
-            try:  # experiment with removing this try block 'cause I don't remember why it's here
-                item = await self._queue.get()
-                if isinstance(item, EndSentinal):
-                    if self.downstream:
-                        await self.downstream.send(item)
-                    self._queue.task_done()
-                    break
-                else:
-                    try:
-                        await self.process(item)
-                        self._queue.task_done()
-                    except:
-                        self._queue.task_done()
-                        if self._log_errors:
-                            log_errors(sys.exc_info())
-
-            except RuntimeError:
-                raise
 
     async def push(self, item):
         if self.downstream:
