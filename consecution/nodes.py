@@ -45,13 +45,18 @@ class BaseNode:
         for other in other_nodes:
             other._downstream_nodes.extend([self])
 
-    async def add_to_queue(self, item):
-        await self._queue.put(item)
 
     async def complete(self):
         await self._queue.join()
         for child_node in self._downstream_nodes:
             await child_node.complete()
+
+    async def add_to_queue(self, item):
+        await self._queue.put(item)
+
+    async def push(self, item):
+        if self.downstream:
+            await self.downstream.add_to_queue(item)
 
     async def start(self):
         while True:
@@ -121,9 +126,6 @@ class ComputeNode(BaseNode):
         if downstream:
             self.add_downstream_node(downstream)
 
-    async def push(self, item):
-        if self.downstream:
-            await self.downstream.add_to_queue(item)
 
     async def make_task(self, function, *args, **kwargs):
         """
