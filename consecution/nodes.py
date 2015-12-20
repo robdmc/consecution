@@ -22,8 +22,29 @@ def my_blocking_code2(name, item):
 
 #############################################################
 
+#def error_wrapper(function, *args, **kwargs):
+#        try:
+#            return (True, function(*args, **kwargs))
+#        except:
+#            if node_obj._log_errors:
+#                log_errors(sys.exc_info())
+#            return (False, sys.exc_info())
+def error_wrapper(node_obj, f, *args, **kwargs):
+        try:
+            return (True, f(*args, **kwargs))
+        except:
+            if node_obj._log_errors:
+                log_errors(sys.exc_info())
+            return (False, sys.exc_info())
 
+async def make_job(node_obj, function, *args, **kwargs):
+    """
+    returns succeeded, result
+    """
+    func_to_exec = partial(error_wrapper, node_obj, function, *args, **kwargs)
+    return node_obj._loop.run_in_executor(node_obj.executor, func_to_exec)
 
+#############################################################
 
 def log_errors(exc_info_tup):
     print('v' * 78, file=sys.stderr)
@@ -151,20 +172,7 @@ class ComputeNode(BaseNode):
         super(ComputeNode, self).__init__(*args, **kwargs)
 
     async def make_job(self, function, *args, **kwargs):
-        """
-        returns succeeded, result
-        """
-
-        def error_wrapper(*args, **kwargs):
-                try:
-                    return (True, function(*args, **kwargs))
-                except:
-                    if self._log_errors:
-                        log_errors(sys.exc_info())
-                    return (False, sys.exc_info())
-
-        func_to_exec = partial(error_wrapper, *args, **kwargs)
-        return self._loop.run_in_executor(self.executor, func_to_exec)
+        return await make_job(self, function, *args, **kwargs)
 
     async def exececute_in_parallel(self, *tasks, log_errors=True):
         """
