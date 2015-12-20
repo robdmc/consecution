@@ -19,13 +19,24 @@ class BaseNode:
     #executor = ProcessPoolExecutor(max_workers=10)
     executor = ThreadPoolExecutor(max_workers=10)
 
-    def __init__(self, name='', log_errors=True, loop=None):
+    def __init__(
+            self, name='', log_errors=True, loop=None, upstream=None,
+            downstream=None):
+
+
+
+
         self._downstream_nodes = []
         self._upstream_nodes = []
         self._queue = asyncio.Queue(2)
         self._loop = loop if loop else asyncio.get_event_loop()
         self._log_errors = log_errors
         self.name = name
+
+        if upstream:
+            self.add_upstream_node(upstream)
+        if downstream:
+            self.add_downstream_node(downstream)
 
     @property
     def downstream(self):
@@ -92,10 +103,13 @@ class EndSentinal:
 
 
 class ManualProducerNode(BaseNode):
-    def __init__(self, name='', log_errors=True, loop=None):
-        super(ManualProducerNode, self).__init__(
-            name='', log_errors=log_errors, loop=loop
-        )
+    def __init__(self, *args, **kwargs):
+        super(ManualProducerNode, self).__init__(*args, **kwargs)
+
+    #def __init__(self, name='', log_errors=True, loop=None):
+    #    super(ManualProducerNode, self).__init__(
+    #        name='', log_errors=log_errors, loop=loop
+    #    )
 
     def produce_from(self, iterable):
         self.iterable = iterable
@@ -115,17 +129,8 @@ class ManualProducerNode(BaseNode):
 
 
 class ComputeNode(BaseNode):
-    def __init__(
-            self, name='', log_errors=True, loop=None, upstream=None,
-            downstream=None, sleep_seconds=None):
-        super(ComputeNode, self).__init__(
-            name=name, log_errors=log_errors, loop=loop)
-        self.sleep_seconds = sleep_seconds
-        if upstream:
-            self.add_upstream_node(upstream)
-        if downstream:
-            self.add_downstream_node(downstream)
-
+    def __init__(self, *args, **kwargs):
+        super(ComputeNode, self).__init__(*args, **kwargs)
 
     async def make_task(self, function, *args, **kwargs):
         """
@@ -203,7 +208,7 @@ if __name__ == '__main__':
     n_comps = 1
     parent = producer
     for nn in range(n_comps):
-        parent = ComputeNode(upstream=parent, name='comp{:02d}'.format(nn + 1), sleep_seconds=.1 * nn)
+        parent = ComputeNode(upstream=parent, name='comp{:02d}'.format(nn + 1))
 
     producer.produce_from(range(1))
     master = asyncio.gather(*producer.get_starts())
