@@ -34,8 +34,8 @@ def log_errors(exc_info_tup):
     print('^' * 78, file=sys.stderr)
 
 class BaseNode:
-    executor = ProcessPoolExecutor(max_workers=10)
-    #executor = ThreadPoolExecutor(max_workers=10)
+    #executor = ProcessPoolExecutor(max_workers=10)
+    executor = ThreadPoolExecutor(max_workers=10)
 
     def __init__(
             self, name='', log_errors=True, loop=None, upstream=None,
