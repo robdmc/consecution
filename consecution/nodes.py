@@ -22,13 +22,6 @@ def my_blocking_code2(name, item):
 
 #############################################################
 
-#def error_wrapper(function, *args, **kwargs):
-#        try:
-#            return (True, function(*args, **kwargs))
-#        except:
-#            if node_obj._log_errors:
-#                log_errors(sys.exc_info())
-#            return (False, sys.exc_info())
 def error_wrapper(f, log_errors, *args, **kwargs):
         try:
             return (True, f(*args, **kwargs))
