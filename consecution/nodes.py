@@ -29,19 +29,20 @@ def my_blocking_code2(name, item):
 #            if node_obj._log_errors:
 #                log_errors(sys.exc_info())
 #            return (False, sys.exc_info())
-def error_wrapper(node_obj, f, *args, **kwargs):
+def error_wrapper(f, log_errors, *args, **kwargs):
         try:
             return (True, f(*args, **kwargs))
         except:
-            if node_obj._log_errors:
+            if log_errors:
                 log_errors(sys.exc_info())
             return (False, sys.exc_info())
 
-async def make_job(node_obj, function, *args, **kwargs):
+async def make_job(function, node_obj, *args, **kwargs):
     """
     returns succeeded, result
     """
-    func_to_exec = partial(error_wrapper, node_obj, function, *args, **kwargs)
+    func_to_exec = partial(
+        error_wrapper, function, node_obj._log_errors, *args, **kwargs)
     return node_obj._loop.run_in_executor(node_obj.executor, func_to_exec)
 
 #############################################################
@@ -55,8 +56,8 @@ def log_errors(exc_info_tup):
     print('^' * 78, file=sys.stderr)
 
 class BaseNode:
-    #executor = ProcessPoolExecutor(max_workers=10)
-    executor = ThreadPoolExecutor(max_workers=10)
+    executor = ProcessPoolExecutor(max_workers=10)
+    #executor = ThreadPoolExecutor(max_workers=10)
 
     def __init__(
             self, name='', log_errors=True, loop=None, upstream=None,
@@ -172,7 +173,7 @@ class ComputeNode(BaseNode):
         super(ComputeNode, self).__init__(*args, **kwargs)
 
     async def make_job(self, function, *args, **kwargs):
-        return await make_job(self, function, *args, **kwargs)
+        return await make_job(function, self, *args, **kwargs)
 
     async def exececute_in_parallel(self, *tasks, log_errors=True):
         """
