@@ -7,6 +7,24 @@ import inspect
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from functools import partial
 
+
+
+#############################################################
+def my_blocking_code1(name, item):
+    time.sleep(1)
+    print('{} executing block1 on {}'.format(name, item))
+    #return 'ret_from_block1'
+
+def my_blocking_code2(name, item):
+    print('{} executing block2 on {}'.format(name, item))
+    time.sleep(1)
+    return ('result2', name, item)
+
+#############################################################
+
+
+
+
 def log_errors(exc_info_tup):
     print('v' * 78, file=sys.stderr)
     traceback.print_tb(exc_info_tup[2], file=sys.stderr)
@@ -16,8 +34,8 @@ def log_errors(exc_info_tup):
     print('^' * 78, file=sys.stderr)
 
 class BaseNode:
-    #executor = ProcessPoolExecutor(max_workers=10)
-    executor = ThreadPoolExecutor(max_workers=10)
+    executor = ProcessPoolExecutor(max_workers=10)
+    #executor = ThreadPoolExecutor(max_workers=10)
 
     def __init__(
             self, name='', log_errors=True, loop=None, upstream=None,
@@ -132,7 +150,7 @@ class ComputeNode(BaseNode):
     def __init__(self, *args, **kwargs):
         super(ComputeNode, self).__init__(*args, **kwargs)
 
-    async def make_task(self, function, *args, **kwargs):
+    async def make_job(self, function, *args, **kwargs):
         """
         returns succeeded, result
         """
@@ -148,7 +166,7 @@ class ComputeNode(BaseNode):
         func_to_exec = partial(error_wrapper, *args, **kwargs)
         return self._loop.run_in_executor(self.executor, func_to_exec)
 
-    async def run_parallel(self, *tasks, log_errors=True):
+    async def exececute_in_parallel(self, *tasks, log_errors=True):
         """
         may want to take log_errors from a class variable instead of
         a function argument
@@ -162,32 +180,20 @@ class ComputeNode(BaseNode):
 
     async def process(self, item):
 
-        my_var = 'silly'
+        #def my_blocking_code1(name, item):
+        #    time.sleep(1)
+        #    print('{} executing block1 on {}'.format(name, item))
+        #    #return 'ret_from_block1'
 
-        def my_blocking_code1(name, item):
-            time.sleep(1)
-            print('{} executing block1 on {}'.format(name, item))
-            #return 'ret_from_block1'
+        #def my_blocking_code2(name, item):
+        #    print('{} executing block2 on {}'.format(name, item))
+        #    time.sleep(1)
+        #    return ('result2', self.name, item)
 
-        def my_blocking_code2(name, item):
-            print('{} executing block2 on {}'.format(name, item))
-            time.sleep(1)
-            return ('result2', self.name, item)
+        job1 = self.make_job(my_blocking_code1, self.name, item)
+        job2 = self.make_job(my_blocking_code2, self.name, item)
 
-
-        """
-        I don't like the name make_task.  I want to find other language
-        for this that doesn't overlap with asyncio names.
-        maybe self.parallel_wrap
-        or    self.make_parallel
-        or self.in_parallel
-        """
-
-
-        task1 = self.make_task(my_blocking_code1, self.name, item)
-        task2 = self.make_task(my_blocking_code2, self.name, item)
-
-        results = await self.run_parallel(task1, task2)
+        results = await self.exececute_in_parallel(job1, job2)
         for res in results:
             print(res)
 
