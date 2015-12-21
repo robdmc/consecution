@@ -34,6 +34,12 @@ async def make_job(function, node_obj, *args, **kwargs):
     """
     returns succeeded, result
     """
+    try:
+        pickle.dumps(function)
+    except AttributeError:
+        print('***', function.__name__)
+        raise ValueError('You must define your function in module scope')
+
     func_to_exec = partial(
         error_wrapper, function, node_obj._log_errors, *args, **kwargs)
     return node_obj._loop.run_in_executor(node_obj.executor, func_to_exec)
@@ -182,10 +188,10 @@ class ComputeNode(BaseNode):
 
     async def process(self, item):
 
-        #def my_blocking_code1(name, item):
-        #    time.sleep(1)
-        #    print('{} executing block1 on {}'.format(name, item))
-        #    #return 'ret_from_block1'
+        def my_blocking_code1(name, item):
+            time.sleep(1)
+            print('{} executing block1 on {}'.format(name, item))
+            #return 'ret_from_block1'
 
         #def my_blocking_code2(name, item):
         #    print('{} executing block2 on {}'.format(name, item))
@@ -193,9 +199,10 @@ class ComputeNode(BaseNode):
         #    return ('result2', self.name, item)
 
         job1 = self.make_job(my_blocking_code1, self.name, item)
-        job2 = self.make_job(my_blocking_code2, self.name, item)
+        #job2 = self.make_job(my_blocking_code2, self.name, item)
 
-        results = await self.exececute_in_parallel(job1, job2)
+        #results = await self.exececute_in_parallel(job1, job2)
+        results = await self.exececute_in_parallel(job1)
         for res in results:
             print(res)
 
