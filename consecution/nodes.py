@@ -88,12 +88,66 @@ class BaseNode:
         self._loop = loop if loop else asyncio.get_event_loop()
         self._log_errors = log_errors
         self.name = name
+        self._routing_function = None
 
 
         if upstream:
             self.add_upstream_node(upstream)
         if downstream:
             self.add_downstream_node(downstream)
+
+    def __or__(self, other):
+        """
+        OKAY.  HERE IS WHERE I'M LEAVING OFF.  I JUST OVERLOADED THE OR OPERATOR
+        TO CREATE A BRANCHING NODE AND THEN DO THE APPROPRIATE BRANCHING
+        FROM THERE.
+
+        I NEED TO MAKE SURE THIS WORKS FOR BOTH BROADCASTING AND ROUTING.
+        THE WAY I'M WRITING THIS RIGHT NOW, THE OR OVERLOADING IS THE ONLY
+        WAY TO TO BRANCHING.
+        """
+        # transform other into list of nodes
+        if isinstance(other, BaseNode):
+            downstream_elements = [other]
+        elif isinstance(other, list):
+            downstream_elements = other
+        else:
+            raise ValueError(
+                'Nodes can only be joined with other nodes or lists of '
+                'nodes / routing functions.')
+
+        # separate node elements from routing function elements
+        downstream_nodes = [
+            el for el in downstream_elements if isinstance(el, BaseNode)]
+        function_elements = [
+            el for el in downstream_elements if inspect.isfunction(el)]
+
+
+        # run error checks against inputs to make sure joining makes sense
+        if len(downstream_elements) != (
+                len(downstream_nodes) + len(function_elements)):
+            raise ValueError(
+                'Nodes can only be joined with other nodes or lists of '
+                'nodes / routing functions.')
+        if len(function_elements) > 1:
+            raise ValueError(
+                'You can\'t specify more than one routing function in a list')
+        if len(downstream_nodes) == 0:
+            raise ValueError(
+                'You must specify at least one downstream node.')
+
+        # if there are no branches, just add downstream node
+        if len(downstream_nodes) == 1:
+            self.add_downstream_node(*downstream_nodes)
+        # otherwise add the appropriate branching node
+        else:
+            branching_node = BranchingNode()
+            if function_elements:
+                branching_node.set_routing_function(function_elements[0])
+            self.add_downstream_node(branching_node)
+            branching_node.add_downstream_node(*downstream_elements)
+
+
 
     @property
     def downstream(self):
@@ -185,6 +239,27 @@ class ManualProducerNode(BaseNode):
         raise NotImplementedError('Producers don\'t have send methods')
 
 
+class BranchingNode(BaseNode):
+    def __init__(self, *args, **kwargs):
+        super(ComputeNode, self).__init__(*args, **kwargs)
+
+    def set_routing_function(self, function):
+        self._routing_function = function
+
+    async def process(self, item):
+        if self._routing_function:
+            index = self._routing_function(item)
+            if index > len(self._downstream_nodes) - 1:
+                raise ValueError(
+                    'Routing function provided invalid route')
+            await self._downstream_nodes[index].add_to_queue(item)
+        else:
+            task_list = []
+            for downstream in self._downstream_nodes:
+                task_list.append(await downstream.add_to_queue(item))
+            await asyncio.gather(*task_list)
+
+
 class ComputeNode(BaseNode):
     def __init__(self, *args, **kwargs):
         super(ComputeNode, self).__init__(*args, **kwargs)
@@ -205,6 +280,7 @@ class ComputeNode(BaseNode):
 
 
     async def process(self, item):
+        raise NotImplementedError('You must override the process method')
 
         #def my_blocking_code1(name, item):
         #    time.sleep(1)
@@ -235,6 +311,30 @@ class ComputeNode(BaseNode):
         Would like to see how things work for processes as well as threads
         """
 
+class MyComputeNode(ComputeNode):
+    def __init__(self, *args, **kwargs):
+        super(MyComputeNode, self).__init__(*args, **kwargs)
+
+    async def process(self, item):
+
+        job1 = self.make_job(my_blocking_code1, self.name, item)
+        job2 = self.make_job(my_blocking_code1, self.name, item)
+
+        results = await self.exececute_in_parallel(job1, job2)
+        #for res in results:
+        #    print(res)
+
+        print(self.name, item)
+        await self.push(item)
+
+        """
+        Got decent error handling in the executed function.
+        Next step is to nicely handle errors in this process function
+        Maybe make the error logging a class-based thing.
+
+        Would like to see how things work for processes as well as threads
+        """
+
 
 
 if __name__ == '__main__':
@@ -242,7 +342,7 @@ if __name__ == '__main__':
     n_comps = 2
     parent = producer
     for nn in range(n_comps):
-        parent = ComputeNode(upstream=parent, name='comp{:02d}'.format(nn + 1))
+        parent = MyComputeNode(upstream=parent, name='comp{:02d}'.format(nn + 1))
 
     producer.produce_from(range(1))
     master = asyncio.gather(*producer.get_starts())

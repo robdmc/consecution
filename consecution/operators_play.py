@@ -20,9 +20,11 @@ class X(object):
         self.name = name
 
     def __or__(self, other):
+        print('called or')
         return X('({} | {})'.format(self, other))
 
     def __ror__(self, other):
+        print('called ror')
         return X('({} | {})'.format(other, self))
 
     def __str__(self):
@@ -39,9 +41,13 @@ e = X('e')
 f = X('f')
 g = X('g')
 
+if True:
+    print(a|b)
+    print(b|a)
 
-print( 'a|1', a|1)
-print( '1|a', 1|a)
-print()
-print( a | b | c | d)
+if False:
+    print( 'a|1', a|1)
+    print( '1|a', 1|a)
+    print()
+    print( a | b | c | d)
 
