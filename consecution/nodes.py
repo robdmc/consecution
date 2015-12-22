@@ -12,15 +12,28 @@ from functools import partial
 #############################################################
 def my_blocking_code1(name, item):
     time.sleep(1)
-    print('{} executing block1 on {}'.format(name, item))
+    #print('{} executing block1 on {}'.format(name, item))
     #return 'ret_from_block1'
 
 def my_blocking_code2(name, item):
-    print('{} executing block2 on {}'.format(name, item))
+    #print('{} executing block2 on {}'.format(name, item))
     time.sleep(1)
     return ('result2', name, item)
 
 #############################################################
+
+def get_obj_path(obj):
+    try:
+        module_name = obj.__module__
+    except AttributeError:
+        module_name = ''
+    if inspect.isfunction(obj):
+        object_name = obj.__name__
+    else:
+        object_name = obj.__class__.__name__
+    return module_name, object_name
+
+
 
 def error_wrapper(f, log_errors, *args, **kwargs):
         try:
@@ -35,10 +48,17 @@ async def make_job(function, node_obj, *args, **kwargs):
     returns succeeded, result
     """
     try:
+        #TODO: only need to run this check if doing process pool
         pickle.dumps(function)
     except AttributeError:
-        print('***', function.__name__)
-        raise ValueError('You must define your function in module scope')
+        msg = (
+            '\n\nProblem pickling the function:\n\n'
+            '{1}() defined in module {0}\n'
+            '\nThis can happen if the function is not defined\n'
+            'in the module scope.  In other words, you can\'t\n'
+            'use functions that are defined in other functions.\n'
+        ).format(*get_obj_path(function))
+        raise ValueError(msg)
 
     func_to_exec = partial(
         error_wrapper, function, node_obj._log_errors, *args, **kwargs)
@@ -71,6 +91,7 @@ class BaseNode:
         self._loop = loop if loop else asyncio.get_event_loop()
         self._log_errors = log_errors
         self.name = name
+
 
         if upstream:
             self.add_upstream_node(upstream)
@@ -188,10 +209,10 @@ class ComputeNode(BaseNode):
 
     async def process(self, item):
 
-        def my_blocking_code1(name, item):
-            time.sleep(1)
-            print('{} executing block1 on {}'.format(name, item))
-            #return 'ret_from_block1'
+        #def my_blocking_code1(name, item):
+        #    time.sleep(1)
+        #    print('{} executing block1 on {}'.format(name, item))
+        #    #return 'ret_from_block1'
 
         #def my_blocking_code2(name, item):
         #    print('{} executing block2 on {}'.format(name, item))
@@ -199,10 +220,11 @@ class ComputeNode(BaseNode):
         #    return ('result2', self.name, item)
 
         job1 = self.make_job(my_blocking_code1, self.name, item)
+        job2 = self.make_job(my_blocking_code1, self.name, item)
         #job2 = self.make_job(my_blocking_code2, self.name, item)
 
-        #results = await self.exececute_in_parallel(job1, job2)
-        results = await self.exececute_in_parallel(job1)
+        results = await self.exececute_in_parallel(job1, job2)
+        #results = await self.exececute_in_parallel(job1)
         for res in results:
             print(res)
 
@@ -220,7 +242,7 @@ class ComputeNode(BaseNode):
 
 if __name__ == '__main__':
     producer = ManualProducerNode(name='producer')
-    n_comps = 1
+    n_comps = 2
     parent = producer
     for nn in range(n_comps):
         parent = ComputeNode(upstream=parent, name='comp{:02d}'.format(nn + 1))
