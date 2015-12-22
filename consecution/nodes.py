@@ -82,9 +82,6 @@ class BaseNode:
             self, name='', log_errors=True, loop=None, upstream=None,
             downstream=None):
 
-
-
-
         self._downstream_nodes = []
         self._upstream_nodes = []
         self._queue = asyncio.Queue(2)
