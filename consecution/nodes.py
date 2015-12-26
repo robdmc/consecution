@@ -96,6 +96,9 @@ class BaseNode:
         if downstream:
             self.add_downstream_node(downstream)
 
+    def __str__(self):
+        return '<class {}> {}'.format(self.__class__.__name__, self.name)
+
     def __or__(self, other):
         """
         OKAY.  HERE IS WHERE I'M LEAVING OFF.  I JUST OVERLOADED THE OR OPERATOR
@@ -139,14 +142,14 @@ class BaseNode:
         # if there are no branches, just add downstream node
         if len(downstream_nodes) == 1:
             self.add_downstream_node(*downstream_nodes)
+            return other
         # otherwise add the appropriate branching node
         else:
             branching_node = BranchingNode()
             if function_elements:
                 branching_node.set_routing_function(function_elements[0])
             self.add_downstream_node(branching_node)
-            branching_node.add_downstream_node(*downstream_elements)
-
+            branching_node.add_downstream_node(*downstream_nodes)
 
 
     @property
@@ -241,12 +244,14 @@ class ManualProducerNode(BaseNode):
 
 class BranchingNode(BaseNode):
     def __init__(self, *args, **kwargs):
-        super(ComputeNode, self).__init__(*args, **kwargs)
+        super(BranchingNode, self).__init__(*args, **kwargs)
+        self.name = 'builtin_branching'
 
     def set_routing_function(self, function):
         self._routing_function = function
 
     async def process(self, item):
+
         if self._routing_function:
             index = self._routing_function(item)
             if index > len(self._downstream_nodes) - 1:
@@ -256,8 +261,7 @@ class BranchingNode(BaseNode):
         else:
             task_list = []
             for downstream in self._downstream_nodes:
-                task_list.append(await downstream.add_to_queue(item))
-            await asyncio.gather(*task_list)
+                await downstream.add_to_queue(item)
 
 
 class ComputeNode(BaseNode):
@@ -282,73 +286,95 @@ class ComputeNode(BaseNode):
     async def process(self, item):
         raise NotImplementedError('You must override the process method')
 
-        #def my_blocking_code1(name, item):
-        #    time.sleep(1)
-        #    print('{} executing block1 on {}'.format(name, item))
-        #    #return 'ret_from_block1'
+#class MyComputeNode(ComputeNode):
+#    def __init__(self, *args, **kwargs):
+#        super(MyComputeNode, self).__init__(*args, **kwargs)
+#
+#    async def process(self, item):
+#
+#        job1 = self.make_job(my_blocking_code1, self.name, item)
+#        job2 = self.make_job(my_blocking_code1, self.name, item)
+#
+#        results = await self.exececute_in_parallel(job1, job2)
+#        #for res in results:
+#        #    print(res)
+#
+#        print(self.name, item)
+#        await self.push(item)
+#
+#        """
+#        Got decent error handling in the executed function.
+#        Next step is to nicely handle errors in this process function
+#        Maybe make the error logging a class-based thing.
+#
+#        Would like to see how things work for processes as well as threads
+#        """
 
-        #def my_blocking_code2(name, item):
-        #    print('{} executing block2 on {}'.format(name, item))
-        #    time.sleep(1)
-        #    return ('result2', self.name, item)
-
-        job1 = self.make_job(my_blocking_code1, self.name, item)
-        job2 = self.make_job(my_blocking_code1, self.name, item)
-        #job2 = self.make_job(my_blocking_code2, self.name, item)
-
-        results = await self.exececute_in_parallel(job1, job2)
-        #results = await self.exececute_in_parallel(job1)
-        for res in results:
-            print(res)
-
-        await self.push(item)
-
-        """
-        Got decent error handling in the executed function.
-        Next step is to nicely handle errors in this process function
-        Maybe make the error logging a class-based thing.
-
-        Would like to see how things work for processes as well as threads
-        """
-
-class MyComputeNode(ComputeNode):
+class Preprocessor(ComputeNode):
     def __init__(self, *args, **kwargs):
-        super(MyComputeNode, self).__init__(*args, **kwargs)
+        super(Preprocessor, self).__init__(*args, **kwargs)
 
     async def process(self, item):
-
-        job1 = self.make_job(my_blocking_code1, self.name, item)
-        job2 = self.make_job(my_blocking_code1, self.name, item)
-
-        results = await self.exececute_in_parallel(job1, job2)
-        #for res in results:
-        #    print(res)
-
-        print(self.name, item)
+        item = [item, 'preprocessed']
+        print(item)
         await self.push(item)
 
-        """
-        Got decent error handling in the executed function.
-        Next step is to nicely handle errors in this process function
-        Maybe make the error logging a class-based thing.
+class AddString(ComputeNode):
+    def __init__(self, *args, **kwargs):
+        super(AddString, self).__init__(*args, **kwargs)
 
-        Would like to see how things work for processes as well as threads
-        """
+    async def process(self, item):
+        item = [item, 'add_string']
+        print(item)
+        #await self.push(item)
+
+
+class AddNumber(ComputeNode):
+    def __init__(self, *args, **kwargs):
+        super(AddNumber, self).__init__(*args, **kwargs)
+
+    async def process(self, item):
+        item = [item, 'add_number']
+        print(item)
+        #await self.push(item)
+
 
 
 
 if __name__ == '__main__':
-    producer = ManualProducerNode(name='producer')
-    n_comps = 2
-    parent = producer
-    for nn in range(n_comps):
-        parent = MyComputeNode(upstream=parent, name='comp{:02d}'.format(nn + 1))
+    def route_func(item):
+        return item[0] % 2
 
-    producer.produce_from(range(1))
+
+    producer = ManualProducerNode(name='producer')
+
+    producer | Preprocessor(name='preproc') | [
+        AddString(name='add_string'),
+        AddNumber(name='add_number'),
+        route_func
+    ]
+
+    producer.produce_from(range(4))
     master = asyncio.gather(*producer.get_starts())
 
 
     loop = asyncio.get_event_loop()
     asyncio.ensure_future(master)
     loop.run_forever()
+
+
+#if __name__ == '__main__':
+#    producer = ManualProducerNode(name='producer')
+#    n_comps = 2
+#    parent = producer
+#    for nn in range(n_comps):
+#        parent = MyComputeNode(upstream=parent, name='comp{:02d}'.format(nn + 1))
+#
+#    producer.produce_from(range(1))
+#    master = asyncio.gather(*producer.get_starts())
+#
+#
+#    loop = asyncio.get_event_loop()
+#    asyncio.ensure_future(master)
+#    loop.run_forever()
 
