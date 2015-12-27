@@ -177,7 +177,8 @@ class BaseNode:
             await child_node.complete()
 
     async def add_to_queue(self, item):
-        await self._queue.put(item)
+        #await self._queue.put(item)
+        await asyncio.Task(self._queue.put(item))
 
     async def push(self, item):
         if self.downstream:
