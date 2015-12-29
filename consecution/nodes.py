@@ -172,9 +172,10 @@ class BaseNode:
 
 
     async def complete(self):
-        await self._queue.join()
+        await asyncio.Task(self._queue.join())
         for child_node in self._downstream_nodes:
             await child_node.complete()
+        sys.stdout.flush()
 
     async def add_to_queue(self, item):
         #await self._queue.put(item)
@@ -186,24 +187,21 @@ class BaseNode:
 
     async def start(self):
         while True:
-            try:  # experiment with removing this try block 'cause I don't remember why it's here
-                item = await self._queue.get()
-                if isinstance(item, EndSentinal):
-                    if self.downstream:
-                        await self.downstream.add_to_queue(item)
+            item = await self._queue.get()
+            if isinstance(item, EndSentinal):
+                for downstream in self._downstream_nodes:
+                    await downstream.add_to_queue(item)
+                self._queue.task_done()
+                break
+            else:
+                try:
+                    await self.process(item)
                     self._queue.task_done()
-                    break
-                else:
-                    try:
-                        await self.process(item)
-                        self._queue.task_done()
-                    except:
-                        self._queue.task_done()
-                        if self._log_errors:
-                            log_errors(sys.exc_info())
+                except:
+                    self._queue.task_done()
+                    if self._log_errors:
+                        log_errors(sys.exc_info())
 
-            except RuntimeError:
-                raise
 
 
     def get_starts(self):
@@ -252,7 +250,6 @@ class BranchingNode(BaseNode):
         self._routing_function = function
 
     async def process(self, item):
-
         if self._routing_function:
             index = self._routing_function(item)
             if index > len(self._downstream_nodes) - 1:
@@ -260,7 +257,6 @@ class BranchingNode(BaseNode):
                     'Routing function provided invalid route')
             await self._downstream_nodes[index].add_to_queue(item)
         else:
-            task_list = []
             for downstream in self._downstream_nodes:
                 await downstream.add_to_queue(item)
 
@@ -316,26 +312,26 @@ class Preprocessor(ComputeNode):
         super(Preprocessor, self).__init__(*args, **kwargs)
 
     async def process(self, item):
-        item = [item, 'preprocessed']
+        item = [item, self.name]
         print(item)
         await self.push(item)
 
-class AddString(ComputeNode):
+class Even(ComputeNode):
     def __init__(self, *args, **kwargs):
-        super(AddString, self).__init__(*args, **kwargs)
+        super(Even, self).__init__(*args, **kwargs)
 
     async def process(self, item):
-        item = [item, 'add_string']
+        item = [item, self.name]
         print(item)
         #await self.push(item)
 
 
-class AddNumber(ComputeNode):
+class Odd(ComputeNode):
     def __init__(self, *args, **kwargs):
-        super(AddNumber, self).__init__(*args, **kwargs)
+        super(Odd, self).__init__(*args, **kwargs)
 
     async def process(self, item):
-        item = [item, 'add_number']
+        item = [item, self.name]
         print(item)
         #await self.push(item)
 
@@ -349,13 +345,13 @@ if __name__ == '__main__':
 
     producer = ManualProducerNode(name='producer')
 
-    producer | Preprocessor(name='preproc') | [
-        AddString(name='add_string'),
-        AddNumber(name='add_number'),
+    producer | Preprocessor(name='pre') | [
+        Even(name='eve'),
+        Odd(name='odd'),
         route_func
     ]
 
-    producer.produce_from(range(4))
+    producer.produce_from(range(5))
     master = asyncio.gather(*producer.get_starts())
 
 
