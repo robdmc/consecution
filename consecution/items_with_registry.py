@@ -68,18 +68,16 @@ class Acker:
         self.anchors_keys_for_item_key = {}
         #self.item_keys_for_anchor_key = {}
 
-    def register(self, item, anchors):
+    def register(self, item, anchor_keys):
         # create an entry for the newly registered item
         self.entry_at_key[item.key] = AckerEntry(item)
 
         # assemble a list of all anchor keys for this item
-        self.anchors_keys_for_item_key[item.key] = [
-            anchor.key for anchor in anchors
-        ]
+        self.anchors_keys_for_item_key[item.key] = anchor_keys
 
         # xor this item with each of its anchors
-        for anchor in anchors:
-            self.entry_at_key[anchor.key].xor_item(item)
+        for anchor_key in anchor_keys:
+            self.entry_at_key[anchor_key].xor_item(item)
 
     def ack(self, item):
         # get the entry for this item, and xor it again for acking
@@ -102,9 +100,11 @@ class Acker:
 
 
 class Item:
-    def __init__(self, acker, anchors, value=None):
+    def __init__(self, acker, anchor, value=None):
         self.key = random.getrandbits(160)
         self.acker = acker
+        if isinstance(anchor, MultiAnchor):
+            anchors = MultiAnchor.anchor_keys)
         self.acker.register(self, anchors)
 
     def ack(self):
