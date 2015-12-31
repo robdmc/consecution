@@ -1,56 +1,4 @@
 import random
-from collections import defaultdict
-
-class State:
-    def __init__(self):
-        self._state = {}
-
-    def update(self, **kwargs):
-        for key, func in kwargs.items():
-            current_obj = self._state.get(key, None)
-            self._state[key] = func(current_obj)
-
-    def get(self, key):
-        return copy.deepcopy(self._state.get(key, None))
-
-
-
-def worker_func(item, state):
-    return item, state
-
-
-
-class Mapper(ProcessingNode):
-    async def process(self, item):
-        out_item = Item(anchor=item)
-        out_item.value = 1
-        await self.push(out_item)
-
-class Expander(ProcessingNode):
-    async def process(self, item):
-        out_list = []
-        for nn in range(10):
-            out_item = Item(anchor=item, value=1)
-            await self.push(out_item)
-
-class Reducer(ProcessingNode):
-    async def begin(self):
-        self.multi_anchor.clear()
-        await self.state.update(count=lambda: 0)
-
-    async def process(self, item):
-        await self.multi_anchor.add(item)
-        await self.state.update(count=lambda count: count + 1)
-
-    async def end(self):
-        out_item = Item(anchor=self.multi_anchor, value=self.state.get('count'))
-        self.push(out_item)
-
-
-##############################################################################
-##############################################################################
-##############################################################################
-##############################################################################
 
 class AckerEntry:
     def __init__(self, item):
@@ -62,53 +10,106 @@ class AckerEntry:
 
 
 class Acker:
-    def __init__(self, consecutor):
-        self._consucutor = consecutor
+    def __init__(self):
         self.entry_at_key = {}
-        self.anchors_keys_for_item_key = {}
-        #self.item_keys_for_anchor_key = {}
+        self.anchor_keys_for_item_key = {}
 
-    def register(self, item, anchor_keys):
+    def register(self, item, anchor=None):
         # create an entry for the newly registered item
         self.entry_at_key[item.key] = AckerEntry(item)
 
-        # assemble a list of all anchor keys for this item
-        self.anchors_keys_for_item_key[item.key] = anchor_keys
+        if anchor:
+            self.add_anchor(item, anchor)
 
-        # xor this item with each of its anchors
-        for anchor_key in anchor_keys:
-            self.entry_at_key[anchor_key].xor_item(item)
+    def add_anchor(self, item, anchor):
+        self.anchor_keys_for_item_key[item.key].append(anchor.key)
+        self.entry_at_key[anchor.key].xor_item(item)
 
     def ack(self, item):
-        # get the entry for this item, and xor it again for acking
-        entry = self.entry_at_key[item.key]
-        entry.xor_item(item)
+        # get the entry for this item
+        item_entry = self.entry_at_key[item.key]
 
-        # now ack this item for all its anchors
-        for anchor_key in self.anchors_keys_for_item_key[item.key]:
-            entry = self.entry_at_key[anchor_key]
-            entry.xor_item(item)
-            if entry.ack_hash == 0:
-                del self.entry_at_key[anchor_key]
+        # ack this item for all its anchors
+        for anchor_key in self.anchor_keys_for_item_key[item.key]:
+            anchor_entry = self.entry_at_key[anchor_key]
+            anchor_entry.xor_item(item)
+
+        # ack the current item by xor with itself
+        item_entry.xor_item(item)
 
         # if entry is acked, delete it
-        if entry.ack_hash == 0:
+        if item_entry.ack_hash == 0:
             del self.entry_at_key[item.key]
-            del self.anchors_keys_for_item_key[item.key]
-
-
+            del self.anchor_keys_for_item_key[item.key]
 
 
 class Item:
-    def __init__(self, acker, anchor, value=None):
+    def __init__(self, acker, anchor=None, value=None):
+        self.value = value
         self.key = random.getrandbits(160)
         self.acker = acker
-        if isinstance(anchor, MultiAnchor):
-            anchors = MultiAnchor.anchor_keys)
-        self.acker.register(self, anchors)
+        self.acker.register(self, anchor)
+        if achor:
+            self.add_anchor(anchor)
+
+    def add_anchor(self, anchor):
+        self.acker.add_anchor(self, anchor)
 
     def ack(self):
+        if self.value is None:
+            raise ValueError('Can only ack items whos value is not None')
         self.acker.ack(self)
+
+##############################################################################
+##############################################################################
+##############################################################################
+##############################################################################
+#class State:
+#    def __init__(self):
+#        self._state = {}
+#
+#    def update(self, **kwargs):
+#        for key, func in kwargs.items():
+#            current_obj = self._state.get(key, None)
+#            self._state[key] = func(current_obj)
+#
+#    def get(self, key):
+#        return copy.deepcopy(self._state.get(key, None))
+#
+#
+#
+#def worker_func(item, state):
+#    return item, state
+#
+#
+#
+#class Mapper(ProcessingNode):
+#    async def process(self, item):
+#        out_item = Item(anchor=item)
+#        out_item.value = 1
+#        await self.push(out_item)
+#
+#class Expander(ProcessingNode):
+#    async def process(self, item):
+#        out_list = []
+#        for nn in range(10):
+#            out_item = Item(anchor=item, value=1)
+#            await self.push(out_item)
+#
+#class Reducer(ProcessingNode):
+#    async def begin(self):
+#        self.multi_anchor.clear()
+#        await self.state.update(count=lambda: 0)
+#
+#    async def process(self, item):
+#        await self.multi_anchor.add(item)
+#        await self.state.update(count=lambda count: count + 1)
+#
+#    async def end(self):
+#        out_item = Item(anchor=self.multi_anchor, value=self.state.get('count'))
+#        self.push(out_item)
+#
+#
 
 
 
