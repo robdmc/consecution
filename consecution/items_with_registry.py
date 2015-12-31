@@ -26,15 +26,12 @@ class Acker:
         self.entry_at_key[anchor.key].xor_item(item)
 
     def ack(self, item):
-        # get the entry for this item
-        item_entry = self.entry_at_key[item.key]
-
         # ack this item for all its anchors
         for anchor_key in self.anchor_keys_for_item_key[item.key]:
-            anchor_entry = self.entry_at_key[anchor_key]
-            anchor_entry.xor_item(item)
+            self.entry_at_key[anchor_key].xor_item(item)
 
         # ack the current item by xor with itself
+        item_entry = self.entry_at_key[item.key]
         item_entry.xor_item(item)
 
         # if entry is acked, delete it
