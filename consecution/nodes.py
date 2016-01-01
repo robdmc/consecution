@@ -101,13 +101,6 @@ class BaseNode:
 
     def __or__(self, other):
         """
-        OKAY.  HERE IS WHERE I'M LEAVING OFF.  I JUST OVERLOADED THE OR OPERATOR
-        TO CREATE A BRANCHING NODE AND THEN DO THE APPROPRIATE BRANCHING
-        FROM THERE.
-
-        I NEED TO MAKE SURE THIS WORKS FOR BOTH BROADCASTING AND ROUTING.
-        THE WAY I'M WRITING THIS RIGHT NOW, THE OR OVERLOADING IS THE ONLY
-        WAY TO TO BRANCHING.
         """
         # transform other into list of nodes
         if isinstance(other, BaseNode):

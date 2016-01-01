@@ -6,7 +6,7 @@ class AckerEntry:
         self.ack_hash = item.key
         self.item = item
 
-    def xor_item(self, item):
+    async def xor_item(self, item):
         self.ack_hash = self.ack_hash ^ item.key
 
 
@@ -15,18 +15,18 @@ class Acker:
         self.entry_at_key = {}
         self.anchor_keys_for_item_key = defaultdict(set)
 
-    def register(self, item, anchor=None):
+    async def register(self, item, anchor=None):
         # create an entry for the newly registered item
         self.entry_at_key[item.key] = AckerEntry(item)
 
         if anchor:
-            self.add_anchor(item, anchor)
+            await self.add_anchor(item, anchor)
 
-    def add_anchor(self, item, anchor):
+    async def add_anchor(self, item, anchor):
         self.anchor_keys_for_item_key[item.key].add(anchor.key)
         self.entry_at_key[anchor.key].xor_item(item)
 
-    def ack(self, item):
+    async def ack(self, item):
         # ack this item for all its anchors
         anchor_keys_to_delete = []
         for anchor_key in self.anchor_keys_for_item_key[item.key]:
@@ -71,15 +71,17 @@ class Item:
         self.value = value
         self.key = random.getrandbits(160)
         self.acker = acker
-        self.acker.register(self, anchor)
 
-    def add_anchor(self, anchor):
-        self.acker.add_anchor(self, anchor)
+    async def register():
+        await self.acker.register(self, anchor)
 
-    def ack(self):
+    async def add_anchor(self, anchor):
+        await self.acker.add_anchor(self, anchor)
+
+    async def ack(self):
         if self.value is None:
             raise ValueError('Can only ack items whos value is not None')
-        self.acker.ack(self)
+        await self.acker.ack(self)
 
     def __str__(self):
         return str((self.value, self.key))
