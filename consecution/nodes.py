@@ -89,6 +89,7 @@ class BaseNode:
         self._log_errors = log_errors
         self.name = name
         self._routing_function = None
+        self.consecutor = None
 
 
         if upstream:
@@ -200,6 +201,14 @@ class BaseNode:
     @property
     def dag_members(self):
         return self.downstream_set.union(self.upstream_set)
+
+    def node_apply(self, func, *args **kwargs):
+        """
+        func(node, *args, **kwargs)
+        """
+        for node in self.dag_members:
+            func(node, *args, **kwargs)
+
 
     async def complete(self):
         await asyncio.Task(self._queue.join())
