@@ -164,6 +164,43 @@ class BaseNode:
             other._downstream_nodes.extend([self])
 
 
+    @property
+    def terminal_node_set(self):
+        terminals = set()
+        for downstream in self._downstream_nodes:
+            terminals = terminals.union(downstream.terminal_node_set)
+        if len(terminals) == 0:
+            terminals = {self}
+        return terminals
+
+    @property
+    def initial_node_set(self):
+        initials = set()
+        for upstream in self._upstream_nodes:
+            initials = initials.union(upstream.initial_node_set)
+        if len(initials) == 0:
+            initials = {self}
+        return initials
+
+    @property
+    def upstream_set(self):
+        upstreams = {self}
+        for upstream in self._upstream_nodes:
+            upstreams = upstreams.union(upstream.upstream_set)
+        return upstreams
+
+    @property
+    def downstream_set(self):
+        downstreams = {self}
+        for downstream in self._downstream_nodes:
+            downstreams = downstreams.union(downstream.downstream_set)
+        return downstreams
+
+
+    @property
+    def dag_members(self):
+        return self.downstream_set.union(self.upstream_set)
+
     async def complete(self):
         await asyncio.Task(self._queue.join())
         for child_node in self._downstream_nodes:
@@ -351,6 +388,19 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     asyncio.ensure_future(master)
     loop.run_forever()
+
+    print()
+    print()
+    for node in producer.dag_members:
+        print(node)
+    print()
+    print()
+    for node in producer.initial_node_set:
+        print(node)
+    print()
+    print()
+    for node in producer.terminal_node_set:
+        print(node)
 
 
 #if __name__ == '__main__':
