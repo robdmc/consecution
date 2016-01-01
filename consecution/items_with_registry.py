@@ -1,15 +1,6 @@
 import random
 from collections import defaultdict
 
-##################################
-def IdGen():
-    nn = 1
-    while True:
-        yield nn
-        nn += 1
-id_gen = IdGen()
-##################################
-
 class AckerEntry:
     def __init__(self, item):
         self.ack_hash = item.key
@@ -36,19 +27,6 @@ class Acker:
         self.entry_at_key[anchor.key].xor_item(item)
 
     def ack(self, item):
-        print()
-        print('*'*80)
-        print('pre')
-        for k,v in self.entry_at_key.items():
-            print((k, bin(v.ack_hash)[2:]))
-        #print('='*80)
-        #print(self.entry_at_key)
-        #print('-'*80)
-        #print()
-        #print(dict(self.anchor_keys_for_item_key))
-        #print()
-        #print()
-
         # ack this item for all its anchors
         anchor_keys_to_delete = []
         for anchor_key in self.anchor_keys_for_item_key[item.key]:
@@ -58,7 +36,6 @@ class Acker:
             if anchor_entry.ack_hash == 0:
                 anchor_keys_to_delete.append(anchor_key)
 
-        print('keys to delete', anchor_keys_to_delete)
         # must run separate delete loop to avoid modifying dict over loop
         for anchor_key in anchor_keys_to_delete:
             del self.entry_at_key[anchor_key]
@@ -74,11 +51,6 @@ class Acker:
         if item_entry.ack_hash == 0:
             del self.entry_at_key[item.key]
             del self.anchor_keys_for_item_key[item.key]
-
-        print('post')
-        for k,v in self.entry_at_key.items():
-            print((k, bin(v.ack_hash)[2:]))
-        print('done')
 
     def __str__(self):
         return (
@@ -97,8 +69,7 @@ class Acker:
 class Item:
     def __init__(self, acker, anchor=None, value=None):
         self.value = value
-        #self.key = random.getrandbits(160)
-        self.key = next(id_gen)
+        self.key = random.getrandbits(160)
         self.acker = acker
         self.acker.register(self, anchor)
 
@@ -114,33 +85,24 @@ class Item:
         return str((self.value, self.key))
 
 
-if __name__ == '__main__':
-    acker = Acker()
-    #print()
-    #print('*'*80)
-    #print('after pre')
-    #print(acker)
+#if __name__ == '__main__':
+#    acker = Acker()
+#    print(acker)
+#
+#    i1 = Item(acker, value=1)
+#    print(acker)
+#    i2 = Item(acker, anchor=i1, value=2)
+#    print(acker)
+#
+#    i3 = Item(acker, value=3)
+#    i3.add_anchor(i1)
+#    i3.add_anchor(i2)
+#    print(acker)
+#
+#    i1.ack()
+#    print(acker)
+#    i2.ack()
+#    print(acker)
+#    i3.ack()
+#    print(acker)
 
-    i1 = Item(acker, value=1)
-    #print()
-    #print('*'*80)
-    #print('after add1')
-    #print(acker)
-
-    i2 = Item(acker, anchor=i1, value=2)
-    #print()
-    #print('*'*80)
-    #print('after add2')
-    #print(acker)
-
-    i1.ack()
-    #print()
-    #print('*'*80)
-    #print('after ack1')
-    #print(acker)
-
-    i2.ack()
-    #print()
-    #print('*'*80)
-    #print('after ack2')
-    #print(acker)
