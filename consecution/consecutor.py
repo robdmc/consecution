@@ -1,3 +1,4 @@
+import copy
 from consecution.items import Item, Acker
 
 #####################################################
@@ -14,11 +15,18 @@ Maybe:
 #####################################################
 
 class Consecutor:
-    def __init__(self, input_node):
-        self._input_iterable = []
-        self._output_list_named = {}
+    def __init__(self, input_node, output_names=None):
+        self._allowed_output_names = set(
+            output_names) if output_names else set()
+        self.reset()
         self.acker = Acker()
         input_node.apply_to_all_members(self._assign_consecutor_to_node)
+        self._input_iterable = []
+        self._output_list_named = defaultdict(list)
+
+    def reset(self, input_node):
+        self._input_iterable = []
+        self._output_list_named = defaultdict(list)
 
 
     def _assign_consecutor_to_node(self, node):
@@ -42,6 +50,7 @@ class Consecutor:
         self.consume_from([value])
 
     def get_output(self, name):
+        return copy.copy(self._output_list_named.get(name, [])
 
 
 

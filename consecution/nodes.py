@@ -226,6 +226,18 @@ class BaseNode:
         #await self._queue.put(item)
         await asyncio.Task(self._queue.put(item))
 
+    async def write_output(self, name, item):
+        if self.consecutor is None:
+            raise ValueError(
+                'You must run this node in a consecutor to write output')
+        if name not in self.consecutor._allowed_output_names:
+            msg = (
+                'Unrecognized output name {}.
+                ' Allowed output names are {}.'
+            ).format(name, sorted(consecutor._allowed_output_names)))
+            raise ValueError(msg)
+        self.consecutor._output_list_named[name].append(item)
+
     async def push(self, item):
         if self.downstream:
             await self.downstream.add_to_queue(item)
