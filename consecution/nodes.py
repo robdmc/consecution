@@ -213,7 +213,7 @@ class BaseNode:
         if self.consecutor is None:
             raise ValueError(
                 'You must run this node in a consecutor to create items')
-        return self.consecutor.new_item(anchor, value)
+        return self.consecutor._new_item(anchor, value)
 
 
     async def complete(self):
