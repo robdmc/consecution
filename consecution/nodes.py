@@ -202,12 +202,18 @@ class BaseNode:
     def dag_members(self):
         return self.downstream_set.union(self.upstream_set)
 
-    def node_apply(self, func, *args **kwargs):
+    def apply_to_all_members(self, func, *args **kwargs):
         """
         func(node, *args, **kwargs)
         """
         for node in self.dag_members:
             func(node, *args, **kwargs)
+
+    def new_item(self, anchor=None, value=None):
+        if self.consecutor is None:
+            raise ValueError(
+                'You must run this node in a consecutor to create items')
+        return self.consecutor.new_item(anchor, value)
 
 
     async def complete(self):
