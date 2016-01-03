@@ -54,7 +54,8 @@ async def make_job(function, node_obj, *args, **kwargs):
         msg = (
             '\n\nProblem pickling the function:\n\n'
             '{1}() defined in module {0}\n'
-            '\nThis can happen if the function is not defined\n'
+            '\nThis can happen if you are using processes instead of threads\n'
+            'and your function is not defined\n'
             'in the module scope.  In other words, you can\'t\n'
             'use functions that are defined in other functions.\n'
         ).format(*get_obj_path(function))
