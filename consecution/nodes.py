@@ -101,6 +101,7 @@ class BaseNode:
         return '<class {}> {}'.format(self.__class__.__name__, self.name)
 
     def __or__(self, other):
+        I NEED TO GET THE RETURNS RIGHT IN THIS AND __ROR__
         """
         """
         # transform other into list of nodes
@@ -144,6 +145,35 @@ class BaseNode:
                 branching_node.set_routing_function(function_elements[0])
             self.add_downstream_node(branching_node)
             branching_node.add_downstream_node(*downstream_nodes)
+            return branching_node
+
+    def __ror__(self, other):
+        """
+        """
+        # transform other into list of nodes
+        if isinstance(other, BaseNode):
+            upstream_nodes = [other]
+        elif isinstance(other, list):
+            upstream_nodes = other
+        else:
+            raise ValueError(
+                'Nodes can only be joined with other nodes or lists of '
+                'nodes.')
+
+        if len(upstream_nodes) == 0:
+            raise ValueError(
+                'You must specify at least one upstream node.')
+
+        # if there are no branches, just add upstream node
+        if len(upstream_nodes) == 1:
+            self.add_upstream_node(*upstream_nodes)
+            return other
+        # otherwise add the appropriate merging node
+        else:
+            merging_node = MergingNode()
+            self.add_upstream_node(merging_node)
+            merging_node.add_upstream_node(*upstream_nodes)
+            return self
 
 
     @property
@@ -157,6 +187,7 @@ class BaseNode:
     def add_downstream_node(self, *other_nodes):
         self._downstream_nodes.extend(other_nodes)
         for other in other_nodes:
+            #TODO: change this to append
             other._upstream_nodes.extend([self])
 
     def add_upstream_node(self, *other_nodes):
@@ -202,7 +233,7 @@ class BaseNode:
     def dag_members(self):
         return self.downstream_set.union(self.upstream_set)
 
-    def apply_to_all_members(self, func, *args **kwargs):
+    def apply_to_all_members(self, func, *args, **kwargs):
         """
         func(node, *args, **kwargs)
         """
@@ -232,9 +263,9 @@ class BaseNode:
                 'You must run this node in a consecutor to write output')
         if name not in self.consecutor._allowed_output_names:
             msg = (
-                'Unrecognized output name {}.
+                'Unrecognized output name {}.'
                 ' Allowed output names are {}.'
-            ).format(name, sorted(consecutor._allowed_output_names)))
+            ).format(name, sorted(consecutor._allowed_output_names))
             raise ValueError(msg)
         self.consecutor._output_list_named[name].append(item)
 
@@ -372,6 +403,7 @@ class Preprocessor(ComputeNode):
         item = [item, self.name]
         print(item)
         await self.push(item)
+        #await self.write_output('rob', ('out', item))
 
 class Even(ComputeNode):
     def __init__(self, *args, **kwargs):
