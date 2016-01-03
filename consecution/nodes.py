@@ -166,14 +166,7 @@ class BaseNode:
             raise ValueError(
                 'You must specify at least one upstream node.')
 
-        # if there are no branches, just add upstream node
-        if len(upstream_nodes) == 1:
-            self.add_upstream_node(*upstream_nodes)
-        # otherwise add the appropriate merging node
-        else:
-            merging_node = MergingNode()
-            self.add_upstream_node(merging_node)
-            merging_node.add_upstream_node(*upstream_nodes)
+        self.add_upstream_node(*upstream_nodes)
         return self
 
 
@@ -382,13 +375,18 @@ class BranchingNode(BaseNode):
     def __init__(self, *args, **kwargs):
         super(BranchingNode, self).__init__(*args, **kwargs)
         #TODO: make a list of forbidden node names that includes "broadcast"
+        # also include the name of routing function in pydot node
         self.name = 'broadcaster'
         self.node_kwargs = dict(name=self.name, shape='rectangle')
 
-    def set_routing_function(self, function):
-        self.name = 'router'
+    def set_routing_function(self, func):
+        if func.__class__.__name__ == 'function':
+            self.name =  func.__name__
+        else:
+            self.name = func.__class__.__name__
+
         self.node_kwargs = dict(name=self.name, shape='rectangle')
-        self._routing_function = function
+        self._routing_function = func
 
     async def process(self, item):
         if self._routing_function:
@@ -465,7 +463,7 @@ class Even(ComputeNode):
     async def process(self, item):
         item = [item, self.name]
         print(item)
-        #await self.push(item)
+        await self.push(item)
 
 
 class Odd(ComputeNode):
@@ -475,13 +473,20 @@ class Odd(ComputeNode):
     async def process(self, item):
         item = [item, self.name]
         print(item)
-        #await self.push(item)
+        await self.push(item)
 
-NOW I NEED TO GET MERGING WORKING.
+class Post(ComputeNode):
+    def __init__(self, *args, **kwargs):
+        super(Post, self).__init__(*args, **kwargs)
+
+    async def process(self, item):
+        item = [item, self.name]
+        print(item)
+        #await self.push(item)
 
 
 if __name__ == '__main__':
-    def route_func(item):
+    def parity_router(item):
         return item[0] % 2
 
 
@@ -490,8 +495,8 @@ if __name__ == '__main__':
     producer | Preprocessor(name='pre') | [
         Even(name='eve'),
         Odd(name='odd'),
-        route_func
-    ]
+        parity_router
+    ] | Post(name='post')
 
     producer.produce_from(range(5))
     master = asyncio.gather(*producer.get_starts())
