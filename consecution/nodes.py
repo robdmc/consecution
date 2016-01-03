@@ -74,6 +74,7 @@ def log_errors(exc_info_tup):
     print(exc_info_tup[1], file=sys.stderr)
     print('^' * 78, file=sys.stderr)
 
+
 class BaseNode:
     executor = ProcessPoolExecutor(max_workers=10)
     #executor = ThreadPoolExecutor(max_workers=10)
@@ -90,6 +91,8 @@ class BaseNode:
         self.name = name
         self._routing_function = None
         self.consecutor = None
+        self.edge_kwargs_list = []
+        self.node_kwargs = dict(name=self.name, shape='rectangle')
 
 
         if upstream:
@@ -101,7 +104,6 @@ class BaseNode:
         return '<class {}> {}'.format(self.__class__.__name__, self.name)
 
     def __or__(self, other):
-        I NEED TO GET THE RETURNS RIGHT IN THIS AND __ROR__
         """
         """
         # transform other into list of nodes
@@ -119,7 +121,6 @@ class BaseNode:
             el for el in downstream_elements if isinstance(el, BaseNode)]
         function_elements = [
             el for el in downstream_elements if inspect.isfunction(el)]
-
 
         # run error checks against inputs to make sure joining makes sense
         if len(downstream_elements) != (
@@ -145,7 +146,7 @@ class BaseNode:
                 branching_node.set_routing_function(function_elements[0])
             self.add_downstream_node(branching_node)
             branching_node.add_downstream_node(*downstream_nodes)
-            return branching_node
+            return downstream_nodes
 
     def __ror__(self, other):
         """
@@ -167,13 +168,12 @@ class BaseNode:
         # if there are no branches, just add upstream node
         if len(upstream_nodes) == 1:
             self.add_upstream_node(*upstream_nodes)
-            return other
         # otherwise add the appropriate merging node
         else:
             merging_node = MergingNode()
             self.add_upstream_node(merging_node)
             merging_node.add_upstream_node(*upstream_nodes)
-            return self
+        return self
 
 
     @property
@@ -187,13 +187,61 @@ class BaseNode:
     def add_downstream_node(self, *other_nodes):
         self._downstream_nodes.extend(other_nodes)
         for other in other_nodes:
-            #TODO: change this to append
-            other._upstream_nodes.extend([self])
+            other._upstream_nodes.append(self)
+            self.edge_kwargs_list.append(
+                dict(src=self.name, dst=other.name, dir='forward'))
 
     def add_upstream_node(self, *other_nodes):
         self._upstream_nodes.extend(other_nodes)
         for other in other_nodes:
-            other._downstream_nodes.extend([self])
+            other._downstream_nodes.append(self)
+            self.edge_kwargs_list.append(
+                dict(src=other.name, dst=self.name, dir='forward'))
+
+    #def create_viz_node(self):
+    #    self.node_kwargs_list.append(dict(name=self.name, shape='rectangle'))
+
+    #def add_viz_upstream(self, *other_nodes):
+    #    if self.pydot_node_class:
+    #        for other_node in other_nodes:
+    #            self.edge_kwargs_list.append(
+    #                dict(other_node.name, self.name, dir='forward'))
+
+    #def add_viz_downstream(self, *other_nodes):
+    #    if self.pydot_node_class:
+    #        for other_node in other_nodes:
+    #            self.edge_kwargs_list.append(
+    #                dict(self.name, other_node.name, dir='forward'))
+
+    def draw_pdf(self, file_name):
+        # define a function to map over all nodes to aggreate viz kwargs
+        def collect_kwargs(node, node_kwargs_list=None, edge_kwargs_list=None):
+            node_kwargs_list.append(node.node_kwargs)
+            edge_kwargs_list.extend(node.edge_kwargs_list)
+
+        # gather the kwargs for creating the visualization
+        node_kwargs_list, edge_kwargs_list = [], []
+
+        self.apply_to_all_members(
+            collect_kwargs, node_kwargs_list=node_kwargs_list,
+            edge_kwargs_list=edge_kwargs_list
+        )
+
+        # doing import inside method so that pydot dependency is optional
+        try:
+            import pydot_ng as pydot
+        except ImportError:
+            raise ImportError(
+                '\n\npydot-ng must be installed if you want to draw graphs')
+
+        graph = pydot.Dot(graph_type='graph')
+        for node_kwargs in node_kwargs_list:
+            graph.add_node(pydot.Node(**node_kwargs))
+        for edge_kwargs in edge_kwargs_list:
+            graph.add_edge(pydot.Edge(**edge_kwargs))
+
+        graph.write_pdf(file_name)
+
 
 
     @property
@@ -332,9 +380,13 @@ class ManualProducerNode(BaseNode):
 class BranchingNode(BaseNode):
     def __init__(self, *args, **kwargs):
         super(BranchingNode, self).__init__(*args, **kwargs)
-        self.name = 'builtin_branching'
+        #TODO: make a list of forbidden node names that includes "broadcast"
+        self.name = 'broadcaster'
+        self.node_kwargs = dict(name=self.name, shape='rectangle')
 
     def set_routing_function(self, function):
+        self.name = 'router'
+        self.node_kwargs = dict(name=self.name, shape='rectangle')
         self._routing_function = function
 
     async def process(self, item):
@@ -424,7 +476,7 @@ class Odd(ComputeNode):
         print(item)
         #await self.push(item)
 
-
+NOW I NEED TO GET MERGING WORKING.
 
 
 if __name__ == '__main__':
@@ -442,6 +494,7 @@ if __name__ == '__main__':
 
     producer.produce_from(range(5))
     master = asyncio.gather(*producer.get_starts())
+    producer.draw_pdf('cons.pdf')
 
 
     loop = asyncio.get_event_loop()
