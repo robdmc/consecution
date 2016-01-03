@@ -507,18 +507,18 @@ if __name__ == '__main__':
     asyncio.ensure_future(master)
     loop.run_forever()
 
-    print()
-    print()
-    for node in producer.dag_members:
-        print(node)
-    print()
-    print()
-    for node in producer.initial_node_set:
-        print(node)
-    print()
-    print()
-    for node in producer.terminal_node_set:
-        print(node)
+    #print()
+    #print()
+    #for node in producer.dag_members:
+    #    print(node)
+    #print()
+    #print()
+    #for node in producer.initial_node_set:
+    #    print(node)
+    #print()
+    #print()
+    #for node in producer.terminal_node_set:
+    #    print(node)
 
 
 #if __name__ == '__main__':
