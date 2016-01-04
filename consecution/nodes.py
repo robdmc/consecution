@@ -290,10 +290,9 @@ class BaseNode:
 
 
     async def complete(self):
-        await asyncio.Task(self._queue.join())
-        for child_node in self._downstream_nodes:
-            await child_node.complete()
-        sys.stdout.flush()
+        for node in self.dag_members:
+            await asyncio.Task(self._queue.join())
+
 
     async def add_to_queue(self, item):
         #await self._queue.put(item)
@@ -332,12 +331,12 @@ class BaseNode:
                     if self._log_errors:
                         log_errors(sys.exc_info())
 
-
-
     def get_starts(self):
-        starts = [self.start()]
-        for child in self._downstream_nodes:
-            starts.extend(child.get_starts())
+        def gather_starts(node, starts=None):
+            starts.append(node.start())
+
+        starts = []
+        self.apply_to_all_members(gather_starts, starts=starts)
         return starts
 
 class EndSentinal:
@@ -475,6 +474,34 @@ class Odd(ComputeNode):
         print(item)
         await self.push(item)
 
+class Threes(ComputeNode):
+    def __init__(self, *args, **kwargs):
+        super(Threes, self).__init__(*args, **kwargs)
+
+    async def process(self, item):
+        item = [item, self.name]
+        print(item)
+        await self.push(item)
+
+class Fours(ComputeNode):
+    def __init__(self, *args, **kwargs):
+        super(Fours, self).__init__(*args, **kwargs)
+
+    async def process(self, item):
+        item = [item, self.name]
+        print(item)
+        await self.push(item)
+
+
+class Pass(ComputeNode):
+    def __init__(self, *args, **kwargs):
+        super(Pass, self).__init__(*args, **kwargs)
+
+    async def process(self, item):
+        item = [item, self.name]
+        await self.push(item)
+
+
 class Post(ComputeNode):
     def __init__(self, *args, **kwargs):
         super(Post, self).__init__(*args, **kwargs)
@@ -486,19 +513,35 @@ class Post(ComputeNode):
 
 
 if __name__ == '__main__':
+
+
     def parity_router(item):
         return item[0] % 2
 
+    def threes_router(item):
+        if item[0] % 3 == 0 and item[0] > 0:
+            return 1
+        else:
+            return 0
+
+    def fours_router(item):
+        if item[0] % 4 == 0 and item[0] > 0:
+            return 1
+        else:
+            return 0
+
 
     producer = ManualProducerNode(name='producer')
+    THE FOLLOWING GRAPH CONSTRUCT IS NOT WORKING AND I WANT IT TO
 
     producer | Preprocessor(name='pre') | [
-        Even(name='eve'),
+        #Even(name='eve') | [Pass(name='pass'), Threes(name='threes'), threes_router],
+        Even(name='eve') | [Pass(name='pass')],
         Odd(name='odd'),
         parity_router
     ] | Post(name='post')
 
-    producer.produce_from(range(5))
+    producer.produce_from(range(1))
     master = asyncio.gather(*producer.get_starts())
     producer.draw_pdf('cons.pdf')
 
