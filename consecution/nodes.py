@@ -67,12 +67,14 @@ async def make_job(function, node_obj, *args, **kwargs):
 
 #############################################################
 
-def log_errors(exc_info_tup):
+def log_errors(exc_info_tup, node=None):
     print('v' * 78, file=sys.stderr)
     traceback.print_tb(exc_info_tup[2], file=sys.stderr)
     print(file=sys.stderr)
     print(exc_info_tup[0], file=sys.stderr)
     print(exc_info_tup[1], file=sys.stderr)
+    if node is not None:
+        print('Error occured in node: {}'.format(node))
     print('^' * 78, file=sys.stderr)
 
 
@@ -116,6 +118,11 @@ class BaseNode:
         elif isinstance(other, list):
             downstream_elements = other
         else:
+            print(self)
+            print(other)
+            print(type(other))
+            print()
+
             msg = '\n\nError joining:\n'
             msg += '{} | {}\n\b'.format(self, other)
             msg += 'Joins must be one-to-one, one-to-many, or many-to-one only'
@@ -133,6 +140,10 @@ class BaseNode:
         # run error checks against inputs to make sure joining makes sense
         if len(downstream_elements) != (
                 len(downstream_nodes) + len(function_elements)):
+            print(self)
+            print(other)
+            print(type(other))
+            print()
 
             msg = '\n\nError joining:\n'
             msg += '{} | {}\n\b'.format(self, other)
@@ -312,8 +323,7 @@ class BaseNode:
 
 
     async def complete(self):
-        for node in self.dag_members:
-            await asyncio.Task(self._queue.join())
+        await asyncio.gather(*[n._queue.join() for n in self.dag_members])
 
 
     async def add_to_queue(self, item):
@@ -337,6 +347,7 @@ class BaseNode:
             await self.downstream.add_to_queue(item)
 
     async def start(self):
+        print('{} starting'.format(self))
         while True:
             item = await self._queue.get()
             if isinstance(item, EndSentinal):
@@ -351,7 +362,7 @@ class BaseNode:
                 except:
                     self._queue.task_done()
                     if self._log_errors:
-                        log_errors(sys.exc_info())
+                        log_errors(sys.exc_info(), node=self)
 
     def get_starts(self):
         def gather_starts(node, starts=None):
@@ -381,6 +392,7 @@ class ManualProducerNode(BaseNode):
         self.iterable = iterable
 
     async def start(self):
+        print('{} starting'.format(self))
         if not self.downstream:
             raise ValueError(
                 'Can\'t start a producer without something to consume it')
@@ -570,11 +582,28 @@ if __name__ == '__main__':
     #passer_odd = Pass(name='passer_odd')
     #post = Post(name='post')
 
-    I THINK THIS SHOULD WORK
+    #pre = Pass('pre')
+    #a = Printer('a')
+    #b = Printer('b')
+
+    ##I THINK THIS SHOULD WORK
+    #producer | pre| [
+    #    a,
+    #    b
+    #]
+
+
+    ##I THINK THIS SHOULD WORK
+    #producer | Pass('pre') | [
+    #    Printer('a'),
+    #    Printer('b')
+    #] 
+
+    ##I THINK THIS SHOULD WORK
     producer | Pass('pre') | [
         Pass('a'),
-        Pass('b') | [Pass('c'), Pass('d')] | Pass('e')
-    ] #| Pass('e') | Printer('printer')
+        Pass('b') | [Pass('c'), Pass('d')]
+    ] #| Printer('printer')
 
 
     #producer | Pass('pre') | [
