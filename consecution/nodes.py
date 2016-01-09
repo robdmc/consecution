@@ -123,15 +123,17 @@ class BaseNode:
         # separate node elements from routing function elements
         downstream_nodes = [
             el for el in downstream_elements if isinstance(el, BaseNode)]
+        #function_elements = [
+        #    el for el in downstream_elements if inspect.isfunction(el)]
         function_elements = [
-            el for el in downstream_elements if inspect.isfunction(el)]
+            el for el in downstream_elements if hasattr(el, '__call__')]
 
         # run error checks against inputs to make sure joining makes sense
         if len(downstream_elements) != (
                 len(downstream_nodes) + len(function_elements)):
             raise ValueError(
                 'Nodes can only be joined with other nodes or lists of '
-                'nodes / routing functions.')
+                'nodes / routing callables.')
         if len(function_elements) > 1:
             raise ValueError(
                 'You can\'t specify more than one routing function in a list')
@@ -393,7 +395,7 @@ class BranchingNode(BaseNode):
     def set_routing_function(self, func):
         if func.__class__.__name__ == 'function':
             self.name =  self.name.replace(
-                'broadcaster','{}__router'.format(func.__name__))
+                'broadcaster','{}'.format(func.__name__))
         else:
             self.name =  self.name.replace(
                 '__broadcaster','{}__router'.format(func.__class__.__name__))
@@ -513,13 +515,16 @@ class Pass(ComputeNode):
         super(Pass, self).__init__(*args, **kwargs)
 
     async def process(self, item):
-        item = [item, self.name]
+        if isinstance(item, list):
+            item = [item[0], item[1:] + [self.name]]
+        else:
+            item = [item, self.name]
         await self.push(item)
 
 
-class Post(ComputeNode):
+class Printer(ComputeNode):
     def __init__(self, *args, **kwargs):
-        super(Post, self).__init__(*args, **kwargs)
+        super(Printer, self).__init__(*args, **kwargs)
 
     async def process(self, item):
         item = [item, self.name]
@@ -529,21 +534,15 @@ class Post(ComputeNode):
 
 if __name__ == '__main__':
 
-
-    def parity_router(item):
-        return item[0] % 2
-
-    def threes_router(item):
-        if item[0] % 3 == 0 and item[0] > 0:
-            return 1
-        else:
+    def n_router(factor, item):
+        if item[0] % factor == 0:
             return 0
-
-    def fours_router(item):
-        if item[0] % 4 == 0 and item[0] > 0:
-            return 1
         else:
-            return 0
+            return 1
+
+    twos_router = partial(n_router, 2)
+    threes_router = partial(n_router, 3)
+    fours_router = partial(n_router, 4)
 
 
     producer = ManualProducerNode(name='producer')
@@ -552,43 +551,30 @@ if __name__ == '__main__':
     #producer  | [
     #    Even(name='eve') | [Pass(name='pass')],
     #]
-    pre = Pass(name='pre')
-    eve = Pass(name='eve')
-    passer1 = Pass(name='passer1')
-    passer2 = Pass(name='passer2')
-    a = Pass(name='a')
-    b = Pass(name='b')
-    c = Pass(name='c')
-    d = Pass(name='d')
-    e = Pass(name='e')
-    f = Pass(name='f')
-    odd = Pass(name='odd')
-    post = Pass(name='post')
+    #pre = Pass(name='pre')
+    #eve = Pass(name='eve')
+    #odd = Pass(name='odd')
+    #passer_eve = Pass(name='passer_eve')
+    #passer_odd = Pass(name='passer_odd')
+    #post = Post(name='post')
 
-    #producer | pre | [
-    #    eve | passer,
-    #    odd,
-    #    parity_router
-    #] | post
-    producer | [
-        eve | passer1 | [
-            a,
-            b | [d, e, parity_router] | f,
-            parity_router
-        ] | c,
-        odd | passer2,
-        parity_router
-    ] | post
+    producer | Pass('pre') | [
+        Pass(name='by_two'),
+        Pass(name='other_than_two'),
+        twos_router,
+    ] | Pass(name='after_two') |  [
+        Pass(name='by_three'),
+        Pass(name='other_than_three'),
+        threes_router,
+    ] | Pass(name='after_three') |[
+        Printer(name='by_fours'),
+        Printer(name='other_than_four'),
+        fours_router,
+    ]
 
-    #for node in [producer, pre, eve, passer, odd, post]:
-    #    print()
-    #    print('downstreams',node, node._downstream_nodes)
-    #    print('upstreams',node, node._upstream_nodes)
     producer.draw_pdf('cons.pdf')
-    sys.exit()
-    producer.downstream_set
 
-    producer.produce_from(range(1))
+    producer.produce_from(range(16))
     master = asyncio.gather(*producer.get_starts())
 
 
