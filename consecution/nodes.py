@@ -570,6 +570,7 @@ if __name__ == '__main__':
     #passer_odd = Pass(name='passer_odd')
     #post = Post(name='post')
 
+    I THINK THIS SHOULD WORK
     producer | Pass('pre') | [
         Pass('a'),
         Pass('b') | [Pass('c'), Pass('d')] | Pass('e')
