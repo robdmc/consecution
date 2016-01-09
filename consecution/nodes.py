@@ -102,7 +102,10 @@ class BaseNode:
             self.add_downstream_node(downstream)
 
     def __str__(self):
-        return '<class {}> {}'.format(self.__class__.__name__, self.name)
+        #return '<class {}> {}'.format(self.__class__.__name__, self.name)
+        return '<{}>'.format(self.name)
+    def __repr__(self):
+        return self.__str__()
 
     def __or__(self, other):
         """
@@ -139,10 +142,10 @@ class BaseNode:
         # if there are no branches, just add downstream node
         if len(downstream_nodes) == 1:
             self.add_downstream_node(*downstream_nodes)
-            return other
+            return downstream_nodes[0]
         # otherwise add the appropriate branching node
         else:
-            branching_node = BranchingNode()
+            branching_node = BranchingNode(name=self.name)
             if function_elements:
                 branching_node.set_routing_function(function_elements[0])
             self.add_downstream_node(branching_node)
@@ -179,18 +182,22 @@ class BaseNode:
         return self._upstream_nodes[0] if self._upstream_nodes else None
 
     def add_downstream_node(self, *other_nodes):
-        self._downstream_nodes.extend(other_nodes)
+        #self._downstream_nodes.extend(other_nodes)
         for other in other_nodes:
-            other._upstream_nodes.append(self)
-            self.edge_kwargs_list.append(
-                dict(src=self.name, dst=other.name, dir='forward'))
+            for init_node in other.initial_node_set:
+                self._downstream_nodes.append(init_node)
+                init_node._upstream_nodes.append(self)
+                self.edge_kwargs_list.append(
+                    dict(src=self.name, dst=init_node.name, dir='forward'))
 
     def add_upstream_node(self, *other_nodes):
-        self._upstream_nodes.extend(other_nodes)
-        for other in other_nodes:
-            other._downstream_nodes.append(self)
-            self.edge_kwargs_list.append(
-                dict(src=other.name, dst=self.name, dir='forward'))
+        for init_node in self.initial_node_set:
+            for other in other_nodes:
+                #if other.name == 'producer':
+                init_node._upstream_nodes.append(other)
+                other._downstream_nodes.append(init_node)
+                self.edge_kwargs_list.append(
+                    dict(src=other.name, dst=init_node.name, dir='forward'))
 
     #def create_viz_node(self):
     #    self.node_kwargs_list.append(dict(name=self.name, shape='rectangle'))
@@ -265,9 +272,10 @@ class BaseNode:
 
     @property
     def downstream_set(self):
-        downstreams = {self}
+        downstreams = set()
         for downstream in self._downstream_nodes:
             downstreams = downstreams.union(downstream.downstream_set)
+        downstreams = downstreams.union({self})
         return downstreams
 
 
@@ -342,6 +350,8 @@ class BaseNode:
 class EndSentinal:
     def __str__(self):
         return 'sentinal'
+    def __repr__(self):
+        return self.__str__()
 
 
 class ManualProducerNode(BaseNode):
@@ -375,14 +385,19 @@ class BranchingNode(BaseNode):
         super(BranchingNode, self).__init__(*args, **kwargs)
         #TODO: make a list of forbidden node names that includes "broadcast"
         # also include the name of routing function in pydot node
-        self.name = 'broadcaster'
+        if 'name' not in kwargs:
+            raise ValueError('branching nodes require names')
+        self.name = '{}__broadcaster'.format(kwargs['name'])
         self.node_kwargs = dict(name=self.name, shape='rectangle')
 
     def set_routing_function(self, func):
         if func.__class__.__name__ == 'function':
-            self.name =  func.__name__
+            self.name =  self.name.replace(
+                'broadcaster','{}__router'.format(func.__name__))
         else:
-            self.name = func.__class__.__name__
+            self.name =  self.name.replace(
+                '__broadcaster','{}__router'.format(func.__class__.__name__))
+            #self.name =  '{}__router'.format(func.__class__.__name__)
 
         self.node_kwargs = dict(name=self.name, shape='rectangle')
         self._routing_function = func
@@ -532,23 +547,56 @@ if __name__ == '__main__':
 
 
     producer = ManualProducerNode(name='producer')
-    THE FOLLOWING GRAPH CONSTRUCT IS NOT WORKING AND I WANT IT TO
+    #THE FOLLOWING GRAPH CONSTRUCT IS NOT WORKING AND I WANT IT TO
 
-    producer | Preprocessor(name='pre') | [
-        #Even(name='eve') | [Pass(name='pass'), Threes(name='threes'), threes_router],
-        Even(name='eve') | [Pass(name='pass')],
-        Odd(name='odd'),
+    #producer  | [
+    #    Even(name='eve') | [Pass(name='pass')],
+    #]
+    pre = Pass(name='pre')
+    eve = Pass(name='eve')
+    passer1 = Pass(name='passer1')
+    passer2 = Pass(name='passer2')
+    a = Pass(name='a')
+    b = Pass(name='b')
+    c = Pass(name='c')
+    d = Pass(name='d')
+    e = Pass(name='e')
+    f = Pass(name='f')
+    odd = Pass(name='odd')
+    post = Pass(name='post')
+
+    #producer | pre | [
+    #    eve | passer,
+    #    odd,
+    #    parity_router
+    #] | post
+    producer | [
+        eve | passer1 | [
+            a,
+            b | [d, e, parity_router] | f,
+            parity_router
+        ] | c,
+        odd | passer2,
         parity_router
-    ] | Post(name='post')
+    ] | post
+
+    #for node in [producer, pre, eve, passer, odd, post]:
+    #    print()
+    #    print('downstreams',node, node._downstream_nodes)
+    #    print('upstreams',node, node._upstream_nodes)
+    producer.draw_pdf('cons.pdf')
+    sys.exit()
+    producer.downstream_set
 
     producer.produce_from(range(1))
     master = asyncio.gather(*producer.get_starts())
-    producer.draw_pdf('cons.pdf')
 
 
     loop = asyncio.get_event_loop()
     asyncio.ensure_future(master)
     loop.run_forever()
+
+    #producer.draw
 
     #print()
     #print()
