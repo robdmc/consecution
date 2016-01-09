@@ -116,9 +116,11 @@ class BaseNode:
         elif isinstance(other, list):
             downstream_elements = other
         else:
-            raise ValueError(
-                'Nodes can only be joined with other nodes or lists of '
-                'nodes / routing functions.')
+            msg = '\n\nError joining:\n'
+            msg += '{} | {}\n\b'.format(self, other)
+            msg += 'Joins must be one-to-one, one-to-many, or many-to-one only'
+            msg += '\n\n'
+            raise ValueError(msg)
 
         # separate node elements from routing function elements
         downstream_nodes = [
@@ -131,9 +133,19 @@ class BaseNode:
         # run error checks against inputs to make sure joining makes sense
         if len(downstream_elements) != (
                 len(downstream_nodes) + len(function_elements)):
-            raise ValueError(
-                'Nodes can only be joined with other nodes or lists of '
-                'nodes / routing callables.')
+
+            msg = '\n\nError joining:\n'
+            msg += '{} | {}\n\b'.format(self, other)
+            msg += 'Joins must be one-to-one, one-to-many, or many-to-one'
+            msg += '\n\n'
+            raise ValueError(msg)
+
+
+
+
+            #raise ValueError(
+            #    'Nodes can only be joined with other nodes or lists of '
+            #    'nodes / routing callables.')
         if len(function_elements) > 1:
             raise ValueError(
                 'You can\'t specify more than one routing function in a list')
@@ -398,7 +410,7 @@ class BranchingNode(BaseNode):
                 'broadcaster','{}'.format(func.__name__))
         else:
             self.name =  self.name.replace(
-                '__broadcaster','{}__router'.format(func.__class__.__name__))
+                'broadcaster','{}__router'.format(func.__class__.__name__))
             #self.name =  '{}__router'.format(func.__class__.__name__)
 
         self.node_kwargs = dict(name=self.name, shape='rectangle')
@@ -559,18 +571,25 @@ if __name__ == '__main__':
     #post = Post(name='post')
 
     producer | Pass('pre') | [
-        Pass(name='by_two'),
-        Pass(name='other_than_two'),
-        twos_router,
-    ] | Pass(name='after_two') |  [
-        Pass(name='by_three'),
-        Pass(name='other_than_three'),
-        threes_router,
-    ] | Pass(name='after_three') |[
-        Printer(name='by_fours'),
-        Printer(name='other_than_four'),
-        fours_router,
-    ]
+        Pass('a'),
+        Pass('b') | [Pass('c'), Pass('d')] | Pass('e')
+    ] #| Pass('e') | Printer('printer')
+
+
+    #producer | Pass('pre') | [
+    #    Pass(name='by_two'),
+    #    Pass(name='other_than_two'),
+    #    twos_router,
+    #] | Pass(name='after_two') |  [
+    #    Pass(name='by_three'),
+    #    Pass(name='other_than_three'),
+    #    threes_router,
+    #] | Pass(name='after_three') |[
+    #    Pass(name='by_fours'),
+    #    Pass(name='other_than_four'),
+    #    fours_router,
+    #] | Printer('printer')
+
 
     producer.draw_pdf('cons.pdf')
 
