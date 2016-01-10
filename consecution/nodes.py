@@ -297,7 +297,8 @@ class BaseNode:
         if isinstance(other, BaseNode):
             other = [other]
         self.connect_inputs(*other)
-        return list(self.terminal_node_set)
+        out = list(self.terminal_node_set)
+        return out[0] if len(out) == 1 else out
 
     #def __ror__(self, other):
     #    """
@@ -449,7 +450,6 @@ class BaseNode:
 
 
     async def add_to_queue(self, item):
-        #await self._queue.put(item)
         await asyncio.Task(self._queue.put(item))
 
     async def write_output(self, name, item):
@@ -482,6 +482,7 @@ class BaseNode:
                     self._queue.task_done()
                 except:
                     self._queue.task_done()
+                    print('error in {}'.format(self.name))
                     if self._log_errors:
                         log_errors(sys.exc_info(), node=self)
 
@@ -675,6 +676,13 @@ class Printer(ComputeNode):
         print(item)
         #await self.push(item)
 
+class Nothing(ComputeNode):
+    def __init__(self, *args, **kwargs):
+        super(Nothing, self).__init__(*args, **kwargs)
+
+    async def process(self, item):
+        pass
+
 
 if __name__ == '__main__':
 
@@ -722,22 +730,25 @@ if __name__ == '__main__':
     pre = Pass('pre')
     a = Pass('a')
     b = Pass('b')
-    c = Printer('c')
-    d = Printer('d')
-    e = Printer('e')
+    c = Pass('c')
+    d = Pass('d')
+    e = Pass('e')
+    f = Printer('f')
 
 
+    #producer |  [a, b] | f
     ###I THINK THIS SHOULD WORK
     producer | pre| [
         a,
-        [c, d] #| e
-    ] #| e #| Printer('printer')
+        b | [c, d] | e
+    ] | f #| e #| Printer('printer')
 
-    for node in [producer, pre, a, b, e]:
-        print('node:{}  upstreams:{}  downstreams:{}'.format(
-            node, node._upstream_nodes, node._downstream_nodes))
+    #for node in producer.dag_members:
+    ##for node in [producer, a, b, f]:
+    #    print('node:{}  upstreams:{}  downstreams:{}'.format(
+    #        node, node._upstream_nodes, node._downstream_nodes))
 
-    #sys.exit()
+    producer.draw_pdf('cons.pdf')
 
     #producer | Pass('pre') | [
     #    Pass(name='by_two'),
@@ -754,7 +765,6 @@ if __name__ == '__main__':
     #] | Printer('printer')
 
 
-    producer.draw_pdf('cons.pdf')
 
     producer.produce_from(range(16))
     master = asyncio.gather(*producer.get_starts())
