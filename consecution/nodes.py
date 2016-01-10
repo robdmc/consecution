@@ -109,91 +109,212 @@ class BaseNode:
     def __repr__(self):
         return self.__str__()
 
-    def __or__(self, other):
-        """
-        """
-        # transform other into list of nodes
-        if isinstance(other, BaseNode):
-            downstream_elements = [other]
-        elif isinstance(other, list):
-            downstream_elements = other
-        else:
+
+
+    def validate_outputs(self, downstreams):
+        if len(downstreams) == 0:
             msg = (
-                '\n\nError joining:\n'
-                '{} | {}\n\n'
-                'Nodes can only be joined with other nodes or lists of nodes'
-                '\n\n'
-            ).format(self, other)
+                'Error connecting {} to {}.\n'
+                'There must be at least one node to connect to.'
+            ).format(self, downstreams)
             raise ValueError(msg)
+
+        if len(self.terminal_node_set) > 1 and len(downstreams) > 1:
+            msg = (
+                'Error connecting {} to {}.\n'
+                'Many-to-many connections are not permitted'
+            ).format(self, downstreams)
+            raise ValueError(msg)
+
+    def connect_outputs(self, *downstreams):
+        self.validate_outputs(downstreams)
+        for node in self.terminal_node_set:
+            self.add_downstream_node(*downstreams)
+
+    def _validate_or_operator_args(self, other):
+        # define a default error message
+        default_msg = (
+            '\n\nError connecting {} to {}.\n'
+            'Only nodes or list of nodes or callables are allowed.'
+        ).format(self, other)
+
+        # basenodes are okay
+        if isinstance(other, BaseNode):
+            return
+
+        # make sure input lists are valid
+        if isinstance(other, list):
+            # count the number of elements of each type
+            num_base_nodes, num_callables, num_bad_kinds = 0, 0, 0
+            for el in other:
+                if isinstance(el, BaseNode):
+                    num_base_nodes += 1
+                elif hasattr(el, '__call__'):
+                    num_callables += 1
+                else:
+                    num_bad_kinds += 1
+
+            if num_bad_kinds > 0:
+                raise ValueError(default_msg)
+
+            if num_callables > 1:
+                msg = (
+                    '\n\nError connecting {} to {}.\n'
+                    'Mutliple routing functions found.'
+                ).format(self, other)
+
+        # everything but a node or a list is an error
+        else:
+            raise ValueError(default_msg)
+
+
+
+    def __or__(self, other):
+
+        # make sure arguments are valid
+        self._validate_or_operator_args(other)
+
+        # convert all input to list form
+        if isinstance(other, BaseNode):
+            other = [other]
 
         # separate node elements from routing function elements
         downstream_nodes = [
-            el for el in downstream_elements if isinstance(el, BaseNode)]
-        function_elements = [
-            el for el in downstream_elements if hasattr(el, '__call__')]
+            el for el in other if isinstance(el, BaseNode)]
+        routers = [
+            el for el in other if hasattr(el, '__call__')]
 
-        # run error checks against inputs to make sure joining makes sense
-        if len(downstream_elements) != (
-                len(downstream_nodes) + len(function_elements)):
-            pass
-            #print('\n\n' + '*'*80)
-            #print(self)
-            #print(other)
-            #print(type(other))
-            #print()
-            #raise ValueError()
-
-            #msg = '\n\nError joining:\n'
-            #msg += '{} | {}\n\b'.format(self, other)
-            #msg += 'Joins must be one-to-one, one-to-many, or many-to-one'
-            #msg += '\n\n'
-            #raise ValueError(msg)
-
-
-
-
-            #raise ValueError(
-            #    'Nodes can only be joined with other nodes or lists of '
-            #    'nodes / routing callables.')
-        if len(function_elements) > 1:
-            raise ValueError(
-                'You can\'t specify more than one routing function in a list')
-        if len(downstream_nodes) == 0:
-            raise ValueError(
-                'You must specify at least one downstream node.')
-
-        # if there are no branches, just add downstream node
+        # if only one downstream node, then just connect it
         if len(downstream_nodes) == 1:
-            self.add_downstream_node(*downstream_nodes)
-            return downstream_nodes[0]
-        # otherwise add the appropriate branching node
+            self.connect_outputs(*downstream_nodes)
+        # otherwise wire up a branching node
         else:
             branching_node = BranchingNode(name=self.name)
-            if function_elements:
-                branching_node.set_routing_function(function_elements[0])
-            self.add_downstream_node(branching_node)
-            branching_node.add_downstream_node(*downstream_nodes)
-            return downstream_nodes
+            if routers:
+                branching_node.set_routing_function(routers[0])
+            branching_node.connect_outputs(*downstream_nodes)
+            self.connect_outputs(branching_node)
+
+        out = list(self.terminal_node_set)
+        return out[0] if len(out) == 1 else out
+
+
+    #def __or__(self, other):
+    #    """
+    #    """
+    #    # transform other into list of nodes
+    #    if isinstance(other, BaseNode):
+    #        downstream_elements = [other]
+    #    elif isinstance(other, list):
+    #        downstream_elements = other
+    #    else:
+    #        msg = (
+    #            '\n\nError joining:\n'
+    #            '{} | {}\n\n'
+    #            'Nodes can only be joined with other nodes or lists of nodes'
+    #            '\n\n'
+    #        ).format(self, other)
+    #        raise ValueError(msg)
+
+    #    # separate node elements from routing function elements
+    #    downstream_nodes = [
+    #        el for el in downstream_elements if isinstance(el, BaseNode)]
+    #    function_elements = [
+    #        el for el in downstream_elements if hasattr(el, '__call__')]
+
+    #    # run error checks against inputs to make sure joining makes sense
+    #    if len(downstream_elements) != (
+    #            len(downstream_nodes) + len(function_elements)):
+    #        pass
+    #        #print('\n\n' + '*'*80)
+    #        #print(self)
+    #        #print(other)
+    #        #print(type(other))
+    #        #print()
+    #        #raise ValueError()
+
+    #        #msg = '\n\nError joining:\n'
+    #        #msg += '{} | {}\n\b'.format(self, other)
+    #        #msg += 'Joins must be one-to-one, one-to-many, or many-to-one'
+    #        #msg += '\n\n'
+    #        #raise ValueError(msg)
+
+
+
+
+    #        #raise ValueError(
+    #        #    'Nodes can only be joined with other nodes or lists of '
+    #        #    'nodes / routing callables.')
+    #    if len(function_elements) > 1:
+    #        raise ValueError(
+    #            'You can\'t specify more than one routing function in a list')
+    #    if len(downstream_nodes) == 0:
+    #        raise ValueError(
+    #            'You must specify at least one downstream node.')
+
+    #    print('\nor with {} {}'.format(self, downstream_nodes))
+    #    # if there are no branches, just add downstream node
+    #    if len(downstream_nodes) == 1:
+    #        self.add_downstream_node(*downstream_nodes)
+    #        print('returning {} '.format(downstream_nodes[0]))
+    #        return downstream_nodes[0]
+    #    # otherwise add the appropriate branching node
+    #    else:
+    #        branching_node = BranchingNode(name=self.name)
+    #        if function_elements:
+    #            branching_node.set_routing_function(function_elements[0])
+    #        self.add_downstream_node(branching_node)
+    #        branching_node.add_downstream_node(*downstream_nodes)
+    #        print('returning {} '.format(downstream_nodes))
+    #        return downstream_nodes
+
+    def validate_inputs(self, upstreams):
+        if len(upstreams) == 0:
+            msg = (
+                'Error connecting {} to {}.\n'
+                'There must be at least one node to connect to.'
+            ).format(upstreams, self)
+            raise ValueError(msg)
+
+        if len(self.initial_node_set) > 1 and len(upstreams) > 1:
+            msg = (
+                'Error connecting {} to {}.\n'
+                'Many-to-many connections are not permitted'
+            ).format(upstreams, self)
+            raise ValueError(msg)
+
+    def connect_inputs(self, *upstreams):
+        self.validate_inputs(upstreams)
+        for upstream in upstreams:
+            upstream.add_downstream_node(*list(self.initial_node_set))
 
     def __ror__(self, other):
         """
         """
-        # transform other into list of nodes
         if isinstance(other, BaseNode):
-            upstream_nodes = [other]
-        elif isinstance(other, list):
-            upstream_nodes = other
-        else:
-            raise ValueError(
-                'Nodes can only be joined with other nodes or lists of '
-                'nodes.')
+            other = [other]
+        self.connect_inputs(*other)
+        return list(self.terminal_node_set)
 
-        if len(upstream_nodes) == 0:
-            raise ValueError(
-                'You must specify at least one upstream node.')
+    #def __ror__(self, other):
+    #    """
+    #    """
+    #    # transform other into list of nodes
+    #    if isinstance(other, BaseNode):
+    #        upstream_nodes = [other]
+    #    elif isinstance(other, list):
+    #        upstream_nodes = other
+    #    else:
+    #        raise ValueError(
+    #            'Nodes can only be joined with other nodes or lists of '
+    #            'nodes.')
 
-        self.add_upstream_node(*upstream_nodes)
-        return self
+    #    if len(upstream_nodes) == 0:
+    #        raise ValueError(
+    #            'You must specify at least one upstream node.')
+
+    #    self.add_upstream_node(*upstream_nodes)
+    #    return self
 
 
     @property
@@ -596,21 +717,23 @@ if __name__ == '__main__':
     #] 
 
     pre = Pass('pre')
-    pass_a = Pass('a')
-    pass_b = Pass('b')
-    print_c = Printer('c')
-    print_d = Printer('d')
+    a = Pass('a')
+    b = Pass('b')
+    c = Printer('c')
+    d = Printer('d')
+    e = Printer('e')
 
-    ##I THINK THIS SHOULD WORK
+
+    ###I THINK THIS SHOULD WORK
     producer | pre| [
-        pass_a,
-        pass_b | [print_c, print_d]
-    ] #| Printer('printer')
+        a,
+        b #| [c, d] #| e
+    ] | Printer('printer')
 
-    for node in producer.dag_members:
-        print(node, node._upstream_nodes, node._downstream_nodes)
+    #for node in producer.dag_members:
+    #    print(node, node._upstream_nodes, node._downstream_nodes)
 
-    sys.exit()
+    #sys.exit()
 
     #producer | Pass('pre') | [
     #    Pass(name='by_two'),
