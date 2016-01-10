@@ -118,38 +118,36 @@ class BaseNode:
         elif isinstance(other, list):
             downstream_elements = other
         else:
-            print(self)
-            print(other)
-            print(type(other))
-            print()
-
-            msg = '\n\nError joining:\n'
-            msg += '{} | {}\n\b'.format(self, other)
-            msg += 'Joins must be one-to-one, one-to-many, or many-to-one only'
-            msg += '\n\n'
+            msg = (
+                '\n\nError joining:\n'
+                '{} | {}\n\n'
+                'Nodes can only be joined with other nodes or lists of nodes'
+                '\n\n'
+            ).format(self, other)
             raise ValueError(msg)
 
         # separate node elements from routing function elements
         downstream_nodes = [
             el for el in downstream_elements if isinstance(el, BaseNode)]
-        #function_elements = [
-        #    el for el in downstream_elements if inspect.isfunction(el)]
         function_elements = [
             el for el in downstream_elements if hasattr(el, '__call__')]
 
         # run error checks against inputs to make sure joining makes sense
         if len(downstream_elements) != (
                 len(downstream_nodes) + len(function_elements)):
-            print(self)
-            print(other)
-            print(type(other))
-            print()
+            pass
+            #print('\n\n' + '*'*80)
+            #print(self)
+            #print(other)
+            #print(type(other))
+            #print()
+            #raise ValueError()
 
-            msg = '\n\nError joining:\n'
-            msg += '{} | {}\n\b'.format(self, other)
-            msg += 'Joins must be one-to-one, one-to-many, or many-to-one'
-            msg += '\n\n'
-            raise ValueError(msg)
+            #msg = '\n\nError joining:\n'
+            #msg += '{} | {}\n\b'.format(self, other)
+            #msg += 'Joins must be one-to-one, one-to-many, or many-to-one'
+            #msg += '\n\n'
+            #raise ValueError(msg)
 
 
 
@@ -347,7 +345,6 @@ class BaseNode:
             await self.downstream.add_to_queue(item)
 
     async def start(self):
-        print('{} starting'.format(self))
         while True:
             item = await self._queue.get()
             if isinstance(item, EndSentinal):
@@ -392,7 +389,6 @@ class ManualProducerNode(BaseNode):
         self.iterable = iterable
 
     async def start(self):
-        print('{} starting'.format(self))
         if not self.downstream:
             raise ValueError(
                 'Can\'t start a producer without something to consume it')
@@ -599,12 +595,22 @@ if __name__ == '__main__':
     #    Printer('b')
     #] 
 
+    pre = Pass('pre')
+    pass_a = Pass('a')
+    pass_b = Pass('b')
+    print_c = Printer('c')
+    print_d = Printer('d')
+
     ##I THINK THIS SHOULD WORK
-    producer | Pass('pre') | [
-        Pass('a'),
-        Pass('b') | [Pass('c'), Pass('d')]
+    producer | pre| [
+        pass_a,
+        pass_b | [print_c, print_d]
     ] #| Printer('printer')
 
+    for node in producer.dag_members:
+        print(node, node._upstream_nodes, node._downstream_nodes)
+
+    sys.exit()
 
     #producer | Pass('pre') | [
     #    Pass(name='by_two'),
