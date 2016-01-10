@@ -127,6 +127,7 @@ class BaseNode:
             raise ValueError(msg)
 
     def connect_outputs(self, *downstreams):
+        downstreams = list(downstreams)
         self.validate_outputs(downstreams)
         for node in self.terminal_node_set:
             self.add_downstream_node(*downstreams)
@@ -190,10 +191,10 @@ class BaseNode:
         # otherwise wire up a branching node
         else:
             branching_node = BranchingNode(name=self.name)
+            self.connect_outputs(branching_node)
             if routers:
                 branching_node.set_routing_function(routers[0])
             branching_node.connect_outputs(*downstream_nodes)
-            self.connect_outputs(branching_node)
 
         out = list(self.terminal_node_set)
         return out[0] if len(out) == 1 else out
@@ -285,8 +286,10 @@ class BaseNode:
 
     def connect_inputs(self, *upstreams):
         self.validate_inputs(upstreams)
-        for upstream in upstreams:
-            upstream.add_downstream_node(*list(self.initial_node_set))
+        for input_node in self.initial_node_set:
+            input_node.add_upstream_node(*upstreams)
+        #for upstream in upstreams:
+        #    upstream.add_downstream_node(*list(self.initial_node_set))
 
     def __ror__(self, other):
         """
@@ -727,11 +730,12 @@ if __name__ == '__main__':
     ###I THINK THIS SHOULD WORK
     producer | pre| [
         a,
-        b #| [c, d] #| e
-    ] | Printer('printer')
+        [c, d] #| e
+    ] #| e #| Printer('printer')
 
-    #for node in producer.dag_members:
-    #    print(node, node._upstream_nodes, node._downstream_nodes)
+    for node in [producer, pre, a, b, e]:
+        print('node:{}  upstreams:{}  downstreams:{}'.format(
+            node, node._upstream_nodes, node._downstream_nodes))
 
     #sys.exit()
 
