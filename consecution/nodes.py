@@ -766,7 +766,7 @@ if __name__ == '__main__':
 
 
 
-    producer.produce_from(range(16))
+    producer.produce_from(range(1))
     master = asyncio.gather(*producer.get_starts())
 
 
