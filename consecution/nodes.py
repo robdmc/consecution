@@ -199,76 +199,6 @@ class BaseNode:
         out = list(self.terminal_node_set)
         return out[0] if len(out) == 1 else out
 
-
-    #def __or__(self, other):
-    #    """
-    #    """
-    #    # transform other into list of nodes
-    #    if isinstance(other, BaseNode):
-    #        downstream_elements = [other]
-    #    elif isinstance(other, list):
-    #        downstream_elements = other
-    #    else:
-    #        msg = (
-    #            '\n\nError joining:\n'
-    #            '{} | {}\n\n'
-    #            'Nodes can only be joined with other nodes or lists of nodes'
-    #            '\n\n'
-    #        ).format(self, other)
-    #        raise ValueError(msg)
-
-    #    # separate node elements from routing function elements
-    #    downstream_nodes = [
-    #        el for el in downstream_elements if isinstance(el, BaseNode)]
-    #    function_elements = [
-    #        el for el in downstream_elements if hasattr(el, '__call__')]
-
-    #    # run error checks against inputs to make sure joining makes sense
-    #    if len(downstream_elements) != (
-    #            len(downstream_nodes) + len(function_elements)):
-    #        pass
-    #        #print('\n\n' + '*'*80)
-    #        #print(self)
-    #        #print(other)
-    #        #print(type(other))
-    #        #print()
-    #        #raise ValueError()
-
-    #        #msg = '\n\nError joining:\n'
-    #        #msg += '{} | {}\n\b'.format(self, other)
-    #        #msg += 'Joins must be one-to-one, one-to-many, or many-to-one'
-    #        #msg += '\n\n'
-    #        #raise ValueError(msg)
-
-
-
-
-    #        #raise ValueError(
-    #        #    'Nodes can only be joined with other nodes or lists of '
-    #        #    'nodes / routing callables.')
-    #    if len(function_elements) > 1:
-    #        raise ValueError(
-    #            'You can\'t specify more than one routing function in a list')
-    #    if len(downstream_nodes) == 0:
-    #        raise ValueError(
-    #            'You must specify at least one downstream node.')
-
-    #    print('\nor with {} {}'.format(self, downstream_nodes))
-    #    # if there are no branches, just add downstream node
-    #    if len(downstream_nodes) == 1:
-    #        self.add_downstream_node(*downstream_nodes)
-    #        print('returning {} '.format(downstream_nodes[0]))
-    #        return downstream_nodes[0]
-    #    # otherwise add the appropriate branching node
-    #    else:
-    #        branching_node = BranchingNode(name=self.name)
-    #        if function_elements:
-    #            branching_node.set_routing_function(function_elements[0])
-    #        self.add_downstream_node(branching_node)
-    #        branching_node.add_downstream_node(*downstream_nodes)
-    #        print('returning {} '.format(downstream_nodes))
-    #        return downstream_nodes
-
     def validate_inputs(self, upstreams):
         if len(upstreams) == 0:
             msg = (
@@ -288,8 +218,6 @@ class BaseNode:
         self.validate_inputs(upstreams)
         for input_node in self.initial_node_set:
             input_node.add_upstream_node(*upstreams)
-        #for upstream in upstreams:
-        #    upstream.add_downstream_node(*list(self.initial_node_set))
 
     def __ror__(self, other):
         """
@@ -299,27 +227,6 @@ class BaseNode:
         self.connect_inputs(*other)
         out = list(self.terminal_node_set)
         return out[0] if len(out) == 1 else out
-
-    #def __ror__(self, other):
-    #    """
-    #    """
-    #    # transform other into list of nodes
-    #    if isinstance(other, BaseNode):
-    #        upstream_nodes = [other]
-    #    elif isinstance(other, list):
-    #        upstream_nodes = other
-    #    else:
-    #        raise ValueError(
-    #            'Nodes can only be joined with other nodes or lists of '
-    #            'nodes.')
-
-    #    if len(upstream_nodes) == 0:
-    #        raise ValueError(
-    #            'You must specify at least one upstream node.')
-
-    #    self.add_upstream_node(*upstream_nodes)
-    #    return self
-
 
     @property
     def downstream(self):
@@ -346,21 +253,6 @@ class BaseNode:
                 other._downstream_nodes.append(init_node)
                 self.edge_kwargs_list.append(
                     dict(src=other.name, dst=init_node.name, dir='forward'))
-
-    #def create_viz_node(self):
-    #    self.node_kwargs_list.append(dict(name=self.name, shape='rectangle'))
-
-    #def add_viz_upstream(self, *other_nodes):
-    #    if self.pydot_node_class:
-    #        for other_node in other_nodes:
-    #            self.edge_kwargs_list.append(
-    #                dict(other_node.name, self.name, dir='forward'))
-
-    #def add_viz_downstream(self, *other_nodes):
-    #    if self.pydot_node_class:
-    #        for other_node in other_nodes:
-    #            self.edge_kwargs_list.append(
-    #                dict(self.name, other_node.name, dir='forward'))
 
     def draw_pdf(self, file_name):
         # define a function to map over all nodes to aggreate viz kwargs
@@ -446,7 +338,31 @@ class BaseNode:
 
 
     async def complete(self):
-        await asyncio.gather(*[n._queue.join() for n in self.dag_members])
+        for node in self.initial_node_set:
+            await node._is_complete()
+
+    async def _is_complete(self):
+        if self._queue.qsize() > 0:
+            await self._queue.join()
+        await asyncio.gather(*[n._is_complete() for n in self._downstream_nodes])
+
+
+    #async def complete(self):
+    #    for node in self.initial_node_set:
+    #        await node._is_complete()
+
+    #async def _is_complete(self):
+    #    await self._queue.join()
+    #    await asyncio.gather(*[n._is_complete() for n in self._downstream_nodes])
+
+    #async def complete(self):
+    #    await self._queue.join()
+    #    await asyncio.gather(*[n.complete() for n in self._downstream_nodes])
+
+    #async def complete(self, recursive_call=False):
+    #    await self._queue.join()
+    #    await asyncio.gather(
+    #        *[n.complete(recursive_call=True) for n in self._downstream_nodes])
 
 
     async def add_to_queue(self, item):
@@ -469,20 +385,25 @@ class BaseNode:
             await self.downstream.add_to_queue(item)
 
     async def start(self):
+        sentinal_count = 0
         while True:
             item = await self._queue.get()
             if isinstance(item, EndSentinal):
-                for downstream in self._downstream_nodes:
-                    await downstream.add_to_queue(item)
-                self._queue.task_done()
-                break
+                sentinal_count += 1
+                if sentinal_count == len(self._upstream_nodes):
+                    for downstream in self._downstream_nodes:
+                        await downstream.add_to_queue(item)
+                    self._queue.task_done()
+                    break
+                else:
+                    self._queue.task_done()
             else:
                 try:
                     await self.process(item)
                     self._queue.task_done()
                 except:
                     self._queue.task_done()
-                    print('error in {}'.format(self.name))
+                    print('Error in {}'.format(self.name))
                     if self._log_errors:
                         log_errors(sys.exc_info(), node=self)
 
@@ -505,11 +426,6 @@ class ManualProducerNode(BaseNode):
     def __init__(self, *args, **kwargs):
         super(ManualProducerNode, self).__init__(*args, **kwargs)
 
-    #def __init__(self, name='', log_errors=True, loop=None):
-    #    super(ManualProducerNode, self).__init__(
-    #        name='', log_errors=log_errors, loop=loop
-    #    )
-
     def produce_from(self, iterable):
         self.iterable = iterable
 
@@ -530,8 +446,6 @@ class ManualProducerNode(BaseNode):
 class BranchingNode(BaseNode):
     def __init__(self, *args, **kwargs):
         super(BranchingNode, self).__init__(*args, **kwargs)
-        #TODO: make a list of forbidden node names that includes "broadcast"
-        # also include the name of routing function in pydot node
         if 'name' not in kwargs:
             raise ValueError('branching nodes require names')
         self.name = '{}__broadcaster'.format(kwargs['name'])
@@ -544,7 +458,6 @@ class BranchingNode(BaseNode):
         else:
             self.name =  self.name.replace(
                 'broadcaster','{}__router'.format(func.__class__.__name__))
-            #self.name =  '{}__router'.format(func.__class__.__name__)
 
         self.node_kwargs = dict(name=self.name, shape='rectangle')
         self._routing_function = func
@@ -555,10 +468,14 @@ class BranchingNode(BaseNode):
             if index > len(self._downstream_nodes) - 1:
                 raise ValueError(
                     'Routing function provided invalid route')
-            await self._downstream_nodes[index].add_to_queue(item)
+            await asyncio.Task(
+                self._downstream_nodes[index].add_to_queue(item))
         else:
-            for downstream in self._downstream_nodes:
-                await downstream.add_to_queue(item)
+            queue_tasks = [
+                asyncio.Task(
+                    node.add_to_queue(item)) for node in self._downstream_nodes
+                ]
+            await asyncio.gather(*queue_tasks)
 
 
 class ComputeNode(BaseNode):
@@ -583,30 +500,9 @@ class ComputeNode(BaseNode):
     async def process(self, item):
         raise NotImplementedError('You must override the process method')
 
-#class MyComputeNode(ComputeNode):
-#    def __init__(self, *args, **kwargs):
-#        super(MyComputeNode, self).__init__(*args, **kwargs)
-#
-#    async def process(self, item):
-#
-#        job1 = self.make_job(my_blocking_code1, self.name, item)
-#        job2 = self.make_job(my_blocking_code1, self.name, item)
-#
-#        results = await self.exececute_in_parallel(job1, job2)
-#        #for res in results:
-#        #    print(res)
-#
-#        print(self.name, item)
-#        await self.push(item)
-#
-#        """
-#        Got decent error handling in the executed function.
-#        Next step is to nicely handle errors in this process function
-#        Maybe make the error logging a class-based thing.
-#
-#        Would like to see how things work for processes as well as threads
-#        """
 
+
+##############################################################################
 class Preprocessor(ComputeNode):
     def __init__(self, *args, **kwargs):
         super(Preprocessor, self).__init__(*args, **kwargs)
@@ -674,7 +570,6 @@ class Printer(ComputeNode):
     async def process(self, item):
         item = [item, self.name]
         print(item)
-        #await self.push(item)
 
 class Nothing(ComputeNode):
     def __init__(self, *args, **kwargs):
@@ -766,7 +661,7 @@ if __name__ == '__main__':
 
 
 
-    producer.produce_from(range(1))
+    producer.produce_from(range(10))
     master = asyncio.gather(*producer.get_starts())
 
 
