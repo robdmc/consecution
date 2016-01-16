@@ -104,11 +104,9 @@ class BaseNode:
             self.add_downstream_node(downstream)
 
     def __str__(self):
-        #return '<class {}> {}'.format(self.__class__.__name__, self.name)
         return '<{}>'.format(self.name)
     def __repr__(self):
         return self.__str__()
-
 
 
     def validate_outputs(self, downstreams):
@@ -170,7 +168,6 @@ class BaseNode:
             raise ValueError(default_msg)
 
 
-
     def __or__(self, other):
 
         # make sure arguments are valid
@@ -186,32 +183,18 @@ class BaseNode:
         routers = [
             el for el in other if hasattr(el, '__call__')]
 
-        #downstream_set = set()
-        #for node in downstream_nodes:
-        #    downstream_set = downstream_set.union(node.downstream_set)
-
-        #common_nodes = downstream_set.intersection(self.upstream_set)
-
-        #if common_nodes:
-        #    msg = (
-        #        '\n\nLoop detected in consecutor graph.'
-        #        '  Node(s) {} encountered twice.'
-        #    ).format(common_nodes)
-        #    raise ValueError(msg)
-
         # if only one downstream node, then just connect it
         if len(downstream_nodes) == 1:
             self.connect_outputs(*downstream_nodes)
         # otherwise wire up a branching node
         else:
             branching_node = BranchingNode(name=self.name)
-            self.connect_outputs(branching_node)
             if routers:
                 branching_node.set_routing_function(routers[0])
+            self.connect_outputs(branching_node)
             branching_node.connect_outputs(*downstream_nodes)
 
         out = list(self.terminal_node_set)
-        #print('{} | {} -> {}'.format(self, other, out))
         return out[0] if len(out) == 1 else out
 
     def validate_inputs(self, upstreams):
@@ -243,7 +226,6 @@ class BaseNode:
 
         for node in upstreams:
             upstream_set = upstream_set.union(node.upstream_set)
-
 
         common_nodes = downstream_set.intersection(upstream_set)
 
@@ -324,7 +306,6 @@ class BaseNode:
         graph.write_pdf(file_name)
 
 
-
     @property
     def terminal_node_set(self):
         terminals = set()
@@ -385,25 +366,6 @@ class BaseNode:
         if self._queue.qsize() > 0:
             await self._queue.join()
         await asyncio.gather(*[n._is_complete() for n in self._downstream_nodes])
-
-
-    #async def complete(self):
-    #    for node in self.initial_node_set:
-    #        await node._is_complete()
-
-    #async def _is_complete(self):
-    #    await self._queue.join()
-    #    await asyncio.gather(*[n._is_complete() for n in self._downstream_nodes])
-
-    #async def complete(self):
-    #    await self._queue.join()
-    #    await asyncio.gather(*[n.complete() for n in self._downstream_nodes])
-
-    #async def complete(self, recursive_call=False):
-    #    await self._queue.join()
-    #    await asyncio.gather(
-    #        *[n.complete(recursive_call=True) for n in self._downstream_nodes])
-
 
     async def add_to_queue(self, item):
         await asyncio.Task(self._queue.put(item))
@@ -627,74 +589,75 @@ if __name__ == '__main__':
         else:
             return 1
 
-    twos_router = partial(n_router, 2)
-    threes_router = partial(n_router, 3)
-    fours_router = partial(n_router, 4)
+    def my_router(item):
+        if item[0] % 3 == 0:
+            return 0
+        else:
+            return 1
+
+    def twos_router(item):
+        return n_router(2, item)
+
+    def threes_router(item):
+        return n_router(3, item)
+
+    def fours_router(item):
+        return n_router(4, item)
 
 
     producer = ManualProducerNode(name='producer')
-    #THE FOLLOWING GRAPH CONSTRUCT IS NOT WORKING AND I WANT IT TO
+    by_two = Pass('by_two')
+    not_by_two = Pass('not_by_two')
+    by_three = Pass('by_three')
+    not_by_three = Pass('not_by_three')
+    by_four = Pass('by_four')
+    not_by_four = Pass('not_by_four')
+    pre = Pass('pre')
+    printer = Printer('printer')
+    post_two = Pass('post_two')
+    post_three = Pass('post_three')
 
-    #producer  | [
-    #    Even(name='eve') | [Pass(name='pass')],
-    #]
-    #pre = Pass(name='pre')
-    #eve = Pass(name='eve')
-    #odd = Pass(name='odd')
-    #passer_eve = Pass(name='passer_eve')
-    #passer_odd = Pass(name='passer_odd')
-    #post = Post(name='post')
+    producer | pre | [
+        by_two, not_by_two, twos_router
+    ] | post_two | [
+        by_three, not_by_three, threes_router
+    ] | post_three | [
+        by_four, not_by_four, fours_router
+    ] | printer
+
+
+
+
+
 
     #pre = Pass('pre')
-    #a = Printer('a')
-    #b = Printer('b')
-
-    ##I THINK THIS SHOULD WORK
-    #producer | pre| [
-    #    a,
-    #    b
-    #]
-
-
-    ##I THINK THIS SHOULD WORK
-    #producer | Pass('pre') | [
-    #    Printer('a'),
-    #    Printer('b')
-    #] 
-
-    pre = Pass('pre')
-    a = Pass('a')
-    b = Pass('b')
-    c = Pass('c')
-    d = Pass('d')
-    e = Pass('e')
-    f = Pass('f')
-    g = Pass('g')
-    h = Pass('h')
-    i = Pass('i')
-    j = Pass('j')
-    k = Pass('k')
-    m = Printer('m')
+    #a = Pass('a')
+    #b = Pass('b')
+    #c = Pass('c')
+    #d = Pass('d')
+    #e = Pass('e')
+    #f = Pass('f')
+    #g = Pass('g')
+    #h = Pass('h')
+    #i = Pass('i')
+    #j = Pass('j')
+    #k = Pass('k')
+    #m = Printer('m')
+    #producer | a | [
+    #    b,
+    #    c | [
+    #            e,
+    #            f  | [d, g, h, k, my_router] | i
+    #    ] | j
+    #] | m
 
 
-    #producer |  [a, b] | f
-    ###I THINK THIS SHOULD WORK
-    producer | a | [
-        b,
-        c | [
-                d | e,
-                f | [g, h] | i
-        ] | j
-    ] | m
-
-    #producer | a | [ b, c | [ d | e, f | [g, h] | i ] | j ] | m
-
-    #for node in producer.dag_members:
-    ##for node in [producer, a, b, f]:
-    #    print('node:{}  upstreams:{}  downstreams:{}'.format(
-    #        node, node._upstream_nodes, node._downstream_nodes))
 
     producer.draw_pdf('cons.pdf')
+
+
+
+
 
     #producer | Pass('pre') | [
     #    Pass(name='by_two'),
@@ -712,7 +675,7 @@ if __name__ == '__main__':
 
 
 
-    producer.produce_from(range(1))
+    producer.produce_from(range(13))
     master = asyncio.gather(*producer.get_starts())
 
 
