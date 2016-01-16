@@ -125,6 +125,7 @@ class BaseNode:
                 'Many-to-many connections are not permitted'
             ).format(self, downstreams)
             raise ValueError(msg)
+        self._detect_cycles(self.upstream_set, downstreams)
 
     def connect_outputs(self, *downstreams):
         downstreams = list(downstreams)
@@ -185,6 +186,19 @@ class BaseNode:
         routers = [
             el for el in other if hasattr(el, '__call__')]
 
+        #downstream_set = set()
+        #for node in downstream_nodes:
+        #    downstream_set = downstream_set.union(node.downstream_set)
+
+        #common_nodes = downstream_set.intersection(self.upstream_set)
+
+        #if common_nodes:
+        #    msg = (
+        #        '\n\nLoop detected in consecutor graph.'
+        #        '  Node(s) {} encountered twice.'
+        #    ).format(common_nodes)
+        #    raise ValueError(msg)
+
         # if only one downstream node, then just connect it
         if len(downstream_nodes) == 1:
             self.connect_outputs(*downstream_nodes)
@@ -213,17 +227,39 @@ class BaseNode:
                 'Many-to-many connections are not permitted'
             ).format(upstreams, self)
             raise ValueError(msg)
+        self._detect_cycles(upstreams, self.downstream_set)
 
     def connect_inputs(self, *upstreams):
         self.validate_inputs(upstreams)
         for input_node in self.initial_node_set:
             input_node.add_upstream_node(*upstreams)
 
+    def _detect_cycles(self, upstreams, downstreams):
+        downstream_set = set()
+        upstream_set = set()
+        for node in downstreams:
+            downstream_set = downstream_set.union(node.downstream_set)
+
+        for node in upstreams:
+            upstream_set = upstream_set.union(node.upstream_set)
+
+
+        common_nodes = downstream_set.intersection(upstream_set)
+
+        if common_nodes:
+            msg = (
+                '\n\nLoop detected in consecutor graph.'
+                '  Node(s) {} encountered twice.'
+            ).format(common_nodes)
+            raise ValueError(msg)
+
+
     def __ror__(self, other):
         """
         """
         if isinstance(other, BaseNode):
             other = [other]
+
         self.connect_inputs(*other)
         out = list(self.terminal_node_set)
         return out[0] if len(out) == 1 else out
@@ -628,15 +664,24 @@ if __name__ == '__main__':
     c = Pass('c')
     d = Pass('d')
     e = Pass('e')
-    f = Printer('f')
+    f = Pass('f')
+    g = Pass('g')
+    h = Pass('h')
+    i = Pass('i')
+    j = Pass('h')
+    k = Pass('k')
+    m = Printer('m')
 
 
     #producer |  [a, b] | f
     ###I THINK THIS SHOULD WORK
-    producer | pre| [
-        a,
-        b | [c, d] | e
-    ] | f #| e #| Printer('printer')
+    producer | a | [
+        b,
+        c | [
+                d | e,
+                f | [g, h] | i
+        ] | j
+    ] | m 
 
     #for node in producer.dag_members:
     ##for node in [producer, a, b, f]:
@@ -661,7 +706,7 @@ if __name__ == '__main__':
 
 
 
-    producer.produce_from(range(10))
+    producer.produce_from(range(1))
     master = asyncio.gather(*producer.get_starts())
 
 
