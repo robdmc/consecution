@@ -211,6 +211,7 @@ class BaseNode:
             branching_node.connect_outputs(*downstream_nodes)
 
         out = list(self.terminal_node_set)
+        print('{} | {} -> {}'.format(self, other, out))
         return out[0] if len(out) == 1 else out
 
     def validate_inputs(self, upstreams):
@@ -262,6 +263,7 @@ class BaseNode:
 
         self.connect_inputs(*other)
         out = list(self.terminal_node_set)
+        print('{} | {} --> {}'.format(other, self, out))
         return out[0] if len(out) == 1 else out
 
     @property
@@ -278,6 +280,7 @@ class BaseNode:
             for init_node in other.initial_node_set:
                 self._downstream_nodes.append(init_node)
                 init_node._upstream_nodes.append(self)
+                #print('add_downstream:  {}'.format(dict(src=self.name, dst=init_node.name, dir='forward')))
                 self.edge_kwargs_list.append(
                     dict(src=self.name, dst=init_node.name, dir='forward'))
 
@@ -287,6 +290,7 @@ class BaseNode:
                 #if other.name == 'producer':
                 init_node._upstream_nodes.append(other)
                 other._downstream_nodes.append(init_node)
+                #print('{}, add_upstream:  {}'.format(self, dict(src=other.name, dst=init_node.name, dir='forward')))
                 self.edge_kwargs_list.append(
                     dict(src=other.name, dst=init_node.name, dir='forward'))
 
@@ -668,9 +672,9 @@ if __name__ == '__main__':
     g = Pass('g')
     h = Pass('h')
     i = Pass('i')
-    j = Pass('h')
+    j = Pass('j')
     k = Pass('k')
-    m = Printer('m')
+    m = Nothing('m')
 
 
     #producer |  [a, b] | f
