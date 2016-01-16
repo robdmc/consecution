@@ -211,7 +211,7 @@ class BaseNode:
             branching_node.connect_outputs(*downstream_nodes)
 
         out = list(self.terminal_node_set)
-        print('{} | {} -> {}'.format(self, other, out))
+        #print('{} | {} -> {}'.format(self, other, out))
         return out[0] if len(out) == 1 else out
 
     def validate_inputs(self, upstreams):
@@ -263,7 +263,7 @@ class BaseNode:
 
         self.connect_inputs(*other)
         out = list(self.terminal_node_set)
-        print('{} | {} --> {}'.format(other, self, out))
+        #print('{} | {} --> {}'.format(other, self, out))
         return out[0] if len(out) == 1 else out
 
     @property
@@ -674,7 +674,7 @@ if __name__ == '__main__':
     i = Pass('i')
     j = Pass('j')
     k = Pass('k')
-    m = Nothing('m')
+    m = Printer('m')
 
 
     #producer |  [a, b] | f
@@ -685,7 +685,9 @@ if __name__ == '__main__':
                 d | e,
                 f | [g, h] | i
         ] | j
-    ] | m 
+    ] | m
+
+    #producer | a | [ b, c | [ d | e, f | [g, h] | i ] | j ] | m
 
     #for node in producer.dag_members:
     ##for node in [producer, a, b, f]:
