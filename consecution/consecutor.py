@@ -1,15 +1,47 @@
-import copy
-#from consecution.items import Item, Acker
-from consecution.nodes import BaseNode
+#********************************************************************************
+#********************************************************************************
+#********************************************************************************
+# Here are some more thoughts on the consecutor interface
+
+# iterator use case
+cons = Consecutor(node, init_state_blob=None, timeout_seconds=None)
+cons.consume_iterable(iterator)  # blocks until input has been completely processed
+cons.output['out_name'] # returns copy of list if not concluded else reference
+cons.output['_unprocessed'] # # returns copy of list if not concluded else reference
 
 
-class Consecutor:
-    def __init__(self, input_node):
-        if isinstance(input_node, BaseNode):
-            self._input_nodes = input_node.initial_node_set
-            self._output_nodes = input_node.terminal_node_set
-        else:
-            raise ValueError('\n\nConsecutor can only be created from a node')
+# update use case.  Consecutor can be started and concluded while leaving
+# all internal state intact, including output lists.
+cons = Consecutor(node, init_state_blob=None, timeout_seconds=None)
+
+cons.start() # no blocking
+cons.push(item) # only blocks long enough to place item in queue
+cons.push(item)
+
+cons.output['out_name'] # returns copy of list if not concluded else reference
+cons.output['_unprocessed'] # # returns copy of list if not concluded else reference
+
+cons.clear()  # clears all output lists (can be invoked on either running or concluded consecutors)
+cons.wait_till_processed(timeout_seconds=None) # blocks until everything processed
+
+cons.has_unprocessed  # can be accessed at any time to determine whether there are pending items in the consecutor
+
+#********************************************************************************
+#********************************************************************************
+#********************************************************************************
+
+#import copy
+##from consecution.items import Item, Acker
+#from consecution.nodes import BaseNode
+#
+#
+#class Consecutor:
+#    def __init__(self, input_node):
+#        if isinstance(input_node, BaseNode):
+#            self._input_nodes = input_node.initial_node_set
+#            self._output_nodes = input_node.terminal_node_set
+#        else:
+#            raise ValueError('\n\nConsecutor can only be created from a node')
 
 
 
