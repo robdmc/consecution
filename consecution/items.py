@@ -57,28 +57,26 @@ class Acker:
             del self.anchor_keys_for_item_key[item.key]
 
     def __str__(self):
+        def key_func(tup):
+            key, entry = tup
+            key_str = '{:0x}'.format(key)[:5]
+            anchor_len = len(self.anchor_keys_for_item_key[key])
+            return (anchor_len, key_str)
+
         out = (
             '============================================================\n'
             'acker with {} items'
         ).format(len(self.entry_at_key))
-        for key, entry in self.entry_at_key.items():
+        #for tup in self.entry_at_key.items():
+        for tup in sorted(self.entry_at_key.items(), key=key_func):
+            key, entry = tup
             entry_str = '{}\n{}'.format(out, entry.item)
             anchor_keys = [self.entry_at_key[k].item for k in  self.anchor_keys_for_item_key[key]]
             out = '{} -> {}'.format(entry_str, anchor_keys)
-        #print(repr(out))
         return out
 
 
 
-        #return (
-        #    '============================================================\n'
-        #    'acker with {} items\n'
-        #    '{}\n{}\n\n'
-        #).format(
-        #    len(self.entry_at_key),
-        #    self.entry_at_key,
-        #    dict(self.anchor_keys_for_item_key)
-        #)
     def __repr__(self):
         return str(self)
 
@@ -118,16 +116,26 @@ if __name__ == '__main__':
     #print(acker)
     i2 = Item(acker, anchor=i1, value=2)
     #print(acker)
+    i3 = Item(acker, anchor=i1, value=3)
+    #print(acker)
 
-    i3 = Item(acker, value=3)
-    i3.add_anchor(i1)
-    i3.add_anchor(i2)
+    i4 = Item(acker, value=4)
+    i4.add_anchor(i1)
+    i4.add_anchor(i2)
     print(acker)
+    print('pre_ack')
+
+    for item in [i1, i2, i3, i4][::-1]:
+        item.ack()
+        print(acker)
+        print('acking {}'.format(item))
 
     #i1.ack()
     #print(acker)
     #i2.ack()
     #print(acker)
     #i3.ack()
+    #print(acker)
+    #i4.ack()
     #print(acker)
 
