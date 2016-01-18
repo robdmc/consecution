@@ -436,8 +436,10 @@ class ProducerNode(BaseNode):
             raise ValueError(
                 'Can\'t start a producer without something to consume it')
         for value in self.iterable:
+            print('{} waiting on adding {} to queue'.format(self, value))
             await self.downstream.add_to_queue(value)
         await self.downstream.add_to_queue(EndSentinal())
+        print('{} done'.format(self))
         #await self.complete()
         #self._loop.stop()
 
