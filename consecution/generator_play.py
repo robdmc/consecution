@@ -10,6 +10,8 @@ from functools import partial
 
 async def process(item):
         print('processing {}'.format(item))
+        await asyncio.sleep(1)
+
 
 class EndSentinal:
     def __str__(self):
@@ -54,8 +56,8 @@ class Consecutor:
         loop = asyncio.get_event_loop()
         loop.run_until_complete(asyncio.gather(*self.get_starts()))
 
-
-
+    def push(self, item):
+        self.consume_from_iterable([item])
 
 
 if __name__ == '__main__':
@@ -66,6 +68,12 @@ if __name__ == '__main__':
     c.consume_from_iterable(iterable)
     iterable = [4, 5, 6]
     c.consume_from_iterable(iterable)
+
+    c = Consecutor()
+    for item in range(4):
+        c.push(item)
+    print('done')
+
 
 
 
