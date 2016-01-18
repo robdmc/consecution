@@ -130,12 +130,4 @@ if __name__ == '__main__':
         print(acker)
         print('acking {}'.format(item))
 
-    #i1.ack()
-    #print(acker)
-    #i2.ack()
-    #print(acker)
-    #i3.ack()
-    #print(acker)
-    #i4.ack()
-    #print(acker)
 

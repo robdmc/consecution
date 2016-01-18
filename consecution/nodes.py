@@ -88,7 +88,7 @@ class BaseNode:
 
         self._downstream_nodes = []
         self._upstream_nodes = []
-        self._queue = asyncio.Queue(2)
+        self._queue = asyncio.Queue(200)
         self._loop = loop if loop else asyncio.get_event_loop()
         self._log_errors = log_errors
         self.name = name
@@ -355,7 +355,7 @@ class BaseNode:
         if self.consecutor is None:
             raise ValueError(
                 'You must run this node in a consecutor to create items')
-        return self.consecutor._new_item(anchor, value)
+        return self.consecutor.new_item(anchor, value)
 
 
     async def complete(self):
@@ -424,9 +424,9 @@ class EndSentinal:
         return self.__str__()
 
 
-class ManualProducerNode(BaseNode):
+class ProducerNode(BaseNode):
     def __init__(self, *args, **kwargs):
-        super(ManualProducerNode, self).__init__(*args, **kwargs)
+        super(ProducerNode, self).__init__(*args, **kwargs)
 
     def produce_from(self, iterable):
         self.iterable = iterable
@@ -438,8 +438,8 @@ class ManualProducerNode(BaseNode):
         for value in self.iterable:
             await self.downstream.add_to_queue(value)
         await self.downstream.add_to_queue(EndSentinal())
-        await self.complete()
-        self._loop.stop()
+        #await self.complete()
+        #self._loop.stop()
 
     def add_to_queue(self):
         raise NotImplementedError('Producers don\'t have send methods')
@@ -605,7 +605,7 @@ if __name__ == '__main__':
         return n_router(4, item)
 
 
-    producer = ManualProducerNode(name='producer')
+    producer = ProducerNode(name='producer')
     by_two = Pass('by_two')
     not_by_two = Pass('not_by_two')
     by_three = Pass('by_three')
@@ -700,7 +700,7 @@ if __name__ == '__main__':
 
 
 #if __name__ == '__main__':
-#    producer = ManualProducerNode(name='producer')
+#    producer = ProducerNode(name='producer')
 #    n_comps = 2
 #    parent = producer
 #    for nn in range(n_comps):
