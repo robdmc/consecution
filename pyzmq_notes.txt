@@ -1,0 +1,31 @@
+
+
+* A consecutor is an abstraction designed to be run on one machine either
+  in different processes or in different threads.  This means we don't
+  need the tcp layer for communication and speeds things up.  On
+  initialization, the user can specify either process or thread
+  architecture.  Note that this can be switched with one param change.
+
+* Consecutors must have one and only one input stream.  The following
+  options are provided:
+      - Programatic manually fed with:
+          - consecutor.up(); consecutor.push(item); consecutor.down()
+      - Programatic Iterator fed:
+          - consecutor.produce_from_iterable(iterable)  # shuts down when done
+      - Pyzmq fed:
+          - consecutor.up(); consecutor.produce_from_tcp(uri); consecutor.down()
+      - REST fed:
+          - consecutor.up(); consecutor.produce_from_http(uri): consecutor.down()
+      - stdin fed:
+          - consecutor.up()  # terminates when stdin is done
+
+* Non programatically fed producers have a method for adding cli args to script.
+  This will add appropriate command-line arguments for running a single consecutor
+  as a unix executable.  For TCP or REST fed servers, uri information can be
+  specified.  Other consecutor configuration params can also be set.  Optionally
+  these settings can be read from a configuration file, also referenced in the
+  cli.
+    - consecutor.expose_cli()
+     
+
+* Node definition
