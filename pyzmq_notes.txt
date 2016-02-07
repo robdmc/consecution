@@ -1,4 +1,4 @@
-
+MAYBE USE KYOTO CABINET FOR ANY PERSISTANCE NEEDS
 
 * A consecutor is an abstraction designed to be run on one machine either
   in different processes or in different threads.  This means we don't
@@ -26,6 +26,91 @@
   these settings can be read from a configuration file, also referenced in the
   cli.
     - consecutor.expose_cli()
-     
+
+* Maybe consecutor can registor named output containers
+    - output containers can be anything with a .append(value) method.
+    - syntax can be something like consecutor.register_output(name, container)
+
+
+
+* Work-flow is:
+    - Define nodes using node classes
+    - Wire node up with DSL
+    - pass any node into the consecutor constructor
+    - start the consecutor
+
+
+* Items can wrap values as they travel through nodes.  Nodes can handle either
+  items or non-wrapped values.  Items enable tracking, but result in a
+  performance hit.
+
+  - when an item is created, it is registered with the acker
+  - when it is acked or failed, it is also registered with the acker
+  - acked items dissappear from the acker
+
+* The acker can either be in-memory or on-disk, depending on consecutor
+  configuration.  Consecutor can also be configured to store input items.
+  These items can be stored in memory or persisted to disk so that they
+  can be replayed into the consecutor on failure.
 
 * Node definition
+
+class BaseNode(object):
+    def new_item(self):
+        # this is a factory method for items
+        pass
+
+    def push(self, item):
+        # this acks and pushes an item down-stream
+        pass
+
+    def write(self, container_name, item):
+        # allows writing to consecutor-registered outputs
+
+    def ack(self, item):
+        # this acks an item in the node
+        pass
+
+    def fail(self, item):
+        # this fails an item in the node
+        pass
+
+    def connect_with(self, upstream_uri=None, downstream_uri=None):
+        # uris are automatically generated, but his allows you
+        # to set custom uri's in case you want nodes to talk
+        # to nodes in another machine for part of the computation
+        # Maybe use case for this is to be invoked in inherited class
+        # constructor
+
+    def _a_bunch_of_hidden_methods_for_wiring_etc():
+        pass
+
+
+
+class MyNode(BaseNode):
+    def __init__(self, *args, **kwargs):
+        # any state initialization you want done happens here.
+        pass
+
+    def process(self, item):
+        # code for processing single tuple
+        pass
+
+    def end(self):
+        # any clean up code you want to run goes here
+        pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
