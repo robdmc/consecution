@@ -30,49 +30,66 @@ Connection = namedtuple('Connection', ['parent', 'child'])
 #    p.join()
 
 
+#def with_monitoring(func):
+#    #connection = Connection(*Pipe())
+#    connection_factory = lambda: Connection(*Pipe())
+#    def out_func(*args, **kwargs):
+#        connection = connection_factory()
+#        try:
+#            func(*args, **kwargs)
+#            connection.child.send('ok')
+#        except:
+#            connection.child.send('fail')
+#
+#    out_func.connection = connection
+#    return out_func
+#
+#
+#@with_monitoring
+#def process():
+#    print 'spawned process called'
+#    1/0
+
+
+#p = Process(target=process)
+#p.start()
+#print 'returned', process.connection.parent.recv()
+#p.join()
+
+
+
 class Node(object):
-    def __init__(self, func):
+    def __init__(self, func, name):
         self.connection = Connection(*Pipe())
         self.func = func
+        self.name = name
 
-    def __call__(self, *, **kwargs):
+    def __call__(self, *args, **kwargs):
         try:
-            func(*args, **kwargs)
-            connection.child.send('ok')
+            self.func(*args, **kwargs)
+            self.connection.child.send(('ok', self.name))
         except:
-            connection.child.send('fail')
+            self.connection.child.send(('fail', self.name))
 
 
+def process(name):
+    if name == 'node_a':
+        raise StandardError()
+    print 'spawned process called for name {}'.format(name)
 
-def with_monitoring(func):
-    #connection = Connection(*Pipe())
-    connection_factory = lambda: Connection(*Pipe())
-    def out_func(*args, **kwargs):
-        connection = connection_factory()
-        try:
-            func(*args, **kwargs)
-            connection.child.send('ok')
-        except:
-            connection.child.send('fail')
+node_a = Node(process, 'node_a')
+node_b = Node(process, 'node_b')
 
-    out_func.connection = connection
-    return out_func
+proc_list = []
+node_list = [node_a, node_b]
+for node in node_list:
+    proc = Process(target=node, args=(node.name,))
+    proc_list.append(proc)
+    proc.start()
 
-
-@with_monitoring
-def process():
-    print 'spawned process called'
-    1/0
-
-
-p = Process(target=process)
-p.start()
-print 'returned', process.connection.parent.recv()
-p.join()
-
-
-
-
+for proc, node in zip(proc_list, node_list):
+    print 'returned', node.connection.parent.recv()
+    proc.join()
 
 
 #import zmq
