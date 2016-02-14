@@ -1,104 +1,39 @@
 #! /usr/bin/env python
 
 from collections import namedtuple
-from multiprocessing import Process, Pipe
-from signal import signal, SIGTERM, SIGINT
+from multiprocessing import Process
+from uuid import uuid4
+import sys
+import time
+import zmq
 
-Connection = namedtuple('Connection', ['parent', 'child'])
-
-
-#class MonitoredCall(object):
-#    def __init__(self):
-#        self.connection = Connection(*Pipe())
-#
-#    def __call__(self):
-#        try:
-#            print 'spawned process called'
-#            1/0
-#
-#            self.connection.child.send('ok')
-#
-#        except:
-#            self.connection.child.send('fail')
-#
-#
-#def main():
-#    mc = MonitoredCall()
-#    p = Process(target=mc)
-#    p.start()
-#    print 'returned', mc.connection.parent.recv()
-#    p.join()
-
-
-#def with_monitoring(func):
-#    #connection = Connection(*Pipe())
-#    connection_factory = lambda: Connection(*Pipe())
-#    def out_func(*args, **kwargs):
-#        connection = connection_factory()
-#        try:
-#            func(*args, **kwargs)
-#            connection.child.send('ok')
-#        except:
-#            connection.child.send('fail')
-#
-#    out_func.connection = connection
-#    return out_func
-#
-#
-#@with_monitoring
-#def process():
-#    print 'spawned process called'
-#    1/0
-
-
-#p = Process(target=process)
-#p.start()
-#print 'returned', process.connection.parent.recv()
-#p.join()
-
+Connection = namedtuple('Connection', ['uri', 'socket'])
 
 
 class Node(object):
-    def __init__(self, func, name):
-        self.connection = Connection(*Pipe())
-        self.func = func
+    def __init__(self, name):
+        self.context = zmq.Context()
         self.name = name
 
-    def __call__(self, *args, **kwargs):
-        try:
-            self.func(*args, **kwargs)
-            self.connection.child.send(('ok', self.name))
-        except:
-            self.connection.child.send(('fail', self.name))
+        self.push_connection = Connection(
+            self.push_socket_uri = 'ipc:///tmp/node_data_{}.sock'.format(uuid4())
+            self.push_socket = self.context.socket(zmq.PUSH)
+        )
+
+        self.pull_socket_uri = ''
+        self.pull_socket = None
+
+        self.control_socket_uri = 'ipc:///tmp/node_control_{}.sock'.format(uuid4())
+        self.control_socket = self.context.socket(zmq.REP)
+        self.control_socket
 
 
-def process(name):
-    if name == 'node_a':
-        raise StandardError()
-    print 'spawned process called for name {}'.format(name)
+    def run(self):
+        pass
 
-node_a = Node(process, 'node_a')
-node_b = Node(process, 'node_b')
+    def process(self, item):
+        pass
 
-proc_list = []
-node_list = [node_a, node_b]
-for node in node_list:
-    proc = Process(target=node, args=(node.name,))
-    proc_list.append(proc)
-    proc.start()
-
-for proc, node in zip(proc_list, node_list):
-    print 'returned', node.connection.parent.recv()
-    proc.join()
-
-
-#import zmq
-#import time
-#from threading import Thread
-#import sys
-#from uuid import uuid4
-##from zmq.eventloop import ioloop, zmqstream
-##ioloop.install()
 #
 #SOCKET_URI = 'ipc:///tmp/zmq_sock_{}'.format(uuid4())
 #
