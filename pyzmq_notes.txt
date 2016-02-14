@@ -145,7 +145,16 @@ class MyNode(BaseNode):
 
 
 
+#######################################################################
+Maybe the consecutor runs its own pull socket that listens for each
+node to come alive.  Producer process won't start until all nodes are
+up and running.
 
+Maybe each node polls to sockets: it's input socket and a heartbeat socket.
+The consecutor will send heartbeats to each node and supervise them.  But
+that might not work for long running processes.  Unless the user specifies
+a node timout.  Maybe the hearbeat frequency is related to this time.
+Maybe each edge is brokered so that any node can be restarted if needed.
 
 
 
