@@ -15,21 +15,61 @@ class Node(object):
         self.context = zmq.Context()
         self.name = name
 
+        # pushes data to downstream
         self.push_connection = Connection(
-            self.push_socket_uri = 'ipc:///tmp/node_data_{}.sock'.format(uuid4())
-            self.push_socket = self.context.socket(zmq.PUSH)
+            'ipc:///tmp/node_data_{}.sock'.format(uuid4()),
+            self.context.socket(zmq.PUSH)
         )
 
-        self.pull_socket_uri = ''
-        self.pull_socket = None
+        # pull data from upstream
+        self.pull_connection = Connection(
+            '',
+            None,
+        )
 
-        self.control_socket_uri = 'ipc:///tmp/node_control_{}.sock'.format(uuid4())
-        self.control_socket = self.context.socket(zmq.REP)
-        self.control_socket
+        # accepts control signals to alter behavior
+        self.control_connection = Connection(
+            'ipc:///tmp/node_control_{}.sock'.format(uuid4())
+            self.context.socket(zmq.REP)
+        )
+
+        # send out status information such as "I'm awake," or "I'm dying"
+        self.status_connection = Connection(
+            'ipc:///tmp/node_status_{}.sock'.format(uuid4())
+            self.context.socket(zmq.REQ)
+        )
+
+    def activate_connection(self, connection):
+        def connect(connection):
+            connection.socket.connect(connection.socket.uri)
+        def bind(connection):
+            connection.socket.bind(connection.socket.uri)
+
+        link = {
+            zmq.PULL: connect,
+            zmq.PUSH: bind,
+            zmq.REP: bind,
+            zmq.REQ: connect
+        }
+
+        link[connection](connection)
+
+
+
+
+
+
+
 
 
     def run(self):
-        pass
+        # initialize monitored connections
+        conns = [self.pull_connection, self.control_connection]
+        monitored_connections = [c for c in conns if c.socket is not None]
+
+        poller = zmq.Poller()
+        for conn in monitored_connections:
+            poller.register(conn.socket, zmq.POLLIN)
 
     def process(self, item):
         pass
