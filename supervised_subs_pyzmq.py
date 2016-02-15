@@ -7,7 +7,42 @@ import sys
 import time
 import zmq
 
-Connection = namedtuple('Connection', ['uri', 'socket'])
+#Connection = namedtuple('Connection', ['uri', 'socket'])
+
+class ConnectionBase(object):
+    def __init__(self, uri, socket):
+        self.uri = uri
+        self.socket = socket
+        self.link_uri()
+
+class PullConnection(ConnectionBase):
+    def __init__(self, *args, **kwargs):
+        super(PullConnection, self).__init__(*args, **kwargs)
+        self.socket.connect(self.socket.uri)
+    def handle(self):
+        try:
+            item = socket_pull.recv_pyobj()
+        except:
+            self.handle_error()
+
+
+    def link_uri(self):
+
+        if self.socket.socket_type == zmq.PUSH:
+            self.socket.bind(self.socket.uri)
+
+        elif self.socket.socket_type == zmq.PULL:
+            self.socket.connect(self.socket.uri)
+
+        elif self.socket.socket_type == zmq.REQ:
+            self.socket.connect(self.socket.uri)
+
+        elif self.socket.socket_type == zmq.REP:
+            self.socket.bind(self.socket.uri)
+
+    def handle(self):
+                item = socket_pull.recv_pyobj()
+
 
 
 class Node(object):
@@ -15,61 +50,97 @@ class Node(object):
         self.context = zmq.Context()
         self.name = name
 
-        # pushes data to downstream
-        self.push_connection = Connection(
-            'ipc:///tmp/node_data_{}.sock'.format(uuid4()),
-            self.context.socket(zmq.PUSH)
-        )
-
         # pull data from upstream
         self.pull_connection = Connection(
             '',
             None,
         )
 
+        # pushes data to downstream
+        self.push_connection = Connection(
+            'ipc:///tmp/node_data_{}.sock'.format(uuid4()),
+            self.context.socket(zmq.PUSH),
+        )
+        self.link_uri(self.push_connection)
+
         # accepts control signals to alter behavior
         self.control_connection = Connection(
             'ipc:///tmp/node_control_{}.sock'.format(uuid4())
-            self.context.socket(zmq.REP)
+            self.context.socket(zmq.REP),
         )
+        self.link_uri(self.control_connection)
 
         # send out status information such as "I'm awake," or "I'm dying"
         self.status_connection = Connection(
             'ipc:///tmp/node_status_{}.sock'.format(uuid4())
-            self.context.socket(zmq.REQ)
+            self.context.socket(zmq.REQ),
         )
+        self.link_uri(self.status_connection)
 
-    def activate_connection(self, connection):
-        def connect(connection):
-            connection.socket.connect(connection.socket.uri)
-        def bind(connection):
+    def link_uri(self, connection):
+
+        if connection.socket.socket_type == zmq.PUSH:
             connection.socket.bind(connection.socket.uri)
 
-        link = {
-            zmq.PULL: connect,
-            zmq.PUSH: bind,
-            zmq.REP: bind,
-            zmq.REQ: connect
-        }
+        elif connection.socket.socket_type == zmq.PULL:
+            connection.socket.connect(connection.socket.uri)
 
-        link[connection](connection)
+        elif connection.socket.socket_type == zmq.REQ:
+            connection.socket.connect(connection.socket.uri)
 
+        elif connection.socket.socket_type == zmq.REP:
+            connection.socket.bind(connection.socket.uri)
 
+    def handle_error(self, err):
+        pass
 
+    def handle_pull(self):
+        try:
+            pass
+        except:
+            self.handle_error(err)
 
-
-
-
-
+    def handle_control(self):
+        try:
+            pass
+        except:
+            self.handle_error(err)
 
     def run(self):
-        # initialize monitored connections
+        #  register monitored connections with poller
         conns = [self.pull_connection, self.control_connection]
         monitored_connections = [c for c in conns if c.socket is not None]
-
         poller = zmq.Poller()
         for conn in monitored_connections:
             poller.register(conn.socket, zmq.POLLIN)
+
+        stay_alive = True
+        while stay_alive:
+            socks = dict(poller.poll())
+            if self.pull_connection.socket in socks and socks[self.pull_connection.socket] == zmq.POLLIN:
+                self.handle_pull(self.pull_connection)
+            elif self.control_connection.socket in socks and socks[self.control_connection.socket] == zmq.POLLIN:
+                self.handle_pull(self.pull_connection)
+
+
+
+
+
+                item = socket_pull.recv_pyobj()
+
+
+
+                message = socket_pull.recv()
+                print "Recieved control command: %s" % message
+                if message == "Exit": 
+                    print "Recieved exit command, client will stop recieving messages"
+                    should_continue = False
+
+            if socket_sub in socks and socks[socket_sub] == zmq.POLLIN:
+                string = socket_sub.recv()
+                topic, messagedata = string.split()
+                print "Processing ... ", topic, messagedata
+
 
     def process(self, item):
         pass
