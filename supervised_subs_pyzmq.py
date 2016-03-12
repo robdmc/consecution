@@ -27,18 +27,11 @@ class PullConnection(ConnectionBase):
 
 
     def link_uri(self):
-
-        if self.socket.socket_type == zmq.PUSH:
+        if self.socket.socket_type in [zmq.PUSH, zmq.REP]:
             self.socket.bind(self.socket.uri)
 
-        elif self.socket.socket_type == zmq.PULL:
+        elif self.socket.socket_type in [zmq.PULL, zmq.REQ]:
             self.socket.connect(self.socket.uri)
-
-        elif self.socket.socket_type == zmq.REQ:
-            self.socket.connect(self.socket.uri)
-
-        elif self.socket.socket_type == zmq.REP:
-            self.socket.bind(self.socket.uri)
 
     def handle(self):
                 item = socket_pull.recv_pyobj()
