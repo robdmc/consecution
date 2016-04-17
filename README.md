@@ -32,6 +32,7 @@ from consecution import Node, Pipeline
 from math import log
 
 # Define several nodes to use as pipeline components
+
 class LinesFromFileName(Node):
     """
     A class to extract lines from a file
@@ -83,26 +84,31 @@ class Entropy(Node):
 
         self.global_state['{}_entropy'.format(self.name)] = entropy
 
+# Create instances of nodes so that they can be wired together into a pipeline
+lines_frome_filename = LinesFromFileName(name='lines_from_file_name')
+words_from_line = WordsFromLine(name='words_from_line')
+letters_from_word = LettersFromWord(name='letters_from_word')
+word_entropy = Entropy(name='word_entropy')
+letter_entropy = Entropy(name='letter_entropy')
+
+
+
+# Wire up the nodes into a pipeline.  There are a couple different ways to do this.  This example
+# illustrates the intuitive mini-language that consecution can use to create graphs
+pipeline = Pipeline(
+    # nodes chained together with bash-like pipe symbols
+    lines_from_file_names | words_from_line | [
+        # Piping to a list of nodes broadcasts to each node (or branch) in the list.
+        # Routing is also possible, but not demonstrated here.
+        word_entropy,
+        letters_from_word | letter_entropy
+    ]
+)
 
 # initialize a global_state object (dictionary in this example) that all nodes in the pipeline
 # can reference.
 global_state = {}
-
-# define the pipeline.  There are a couple different ways to do this.  This example
-# illustrates the intuitive mini-language consecution uses to create graphs
-pipeline = Pipeline(
-    global_state=global_state,
-
-    # nodes are chained together with bash-like pipe symbols
-    nodes=LinesFromFileName(name='lines_from_file_names') | WordsFromLine(name='words_from_line')
-
-    # Piping to a list of nodes broadcasts to each node (or branch) in the list
-    # Routing is also possible, but not demonstrated here.
-    | [
-        Entropy(name='word_entropy'),
-        LettersFromWord('words') | Entropy(name='letter_entropy')
-      ]
-)
+pipeline.set_global_state(global_state)
 
 # visualize the pipeline (requires the pydot2 pakage)
 pipeline.visualize(kind='png')
@@ -112,7 +118,6 @@ pipeline.consume(glob.glob('./*.txt'))
 
 # after pipeline execution, global_state is populated with desired entropies
 print('Entropy results are {}'.format(global_state))
-
 ```
 
 
