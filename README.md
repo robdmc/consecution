@@ -32,9 +32,14 @@ computation graphs.
 What's missing, however, is a tool for creating pipelines &mdash; or more precicely &mdash; directed-graphs of processing nodes.
 Ideally the tool would be like a limited version of <a href="http://storm.apache.org/"> Apache Storm</a>.  It would
 incorporate a simplified version of the topology abstraction from Storm and create a syncrhonous, single-threaded
-execution strategy.  "But!"  I can hear you saying.  "This will not scale well for big data."  My response would be that
-you don't actually have big data.  And if you do, then you are probably better off using tools like Storm that have been
-specically designed to accomodate "big data".
+execution strategy.
+
+I can hear you saying.  "But this will not scale well for big data."  My response would be that you don't actually have
+big data.  And if you do, then you are probably better off using tools like Kafa, Storm, Hadoop, etc. that have
+been designed for scalability.  Consecution has been designed for the much more common case where you can handle
+everything on a single core.
+
+
 
 What's missing however is the ability to easily create a pure-python single-process pipeline
 
