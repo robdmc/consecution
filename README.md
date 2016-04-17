@@ -21,7 +21,7 @@ pipelines in Python.  It is a pip-installable, pure-python package with only opt
 abstraction from <a href="http://storm.apache.org/"> Apache Storm</a>.  It provides a simple, intuitive interface for
 building and executing pipelines.
 
-Perhaps the best way to explain consecution is to show a simple, contrived example of a pipeline that computis the word
+Perhaps the best way to explain consecution is to show a simple, contrived example of a pipeline that computes the word
 and letter entropy for the content in a batch of files.
 
 ```python
