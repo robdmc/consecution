@@ -94,7 +94,8 @@ letter_entropy = Entropy(name='letter_entropy')
 
 
 # Wire up the nodes into a pipeline.  There are a couple different ways to do this.  This example
-# illustrates the intuitive mini-language that consecution can use to create graphs
+# illustrates the intuitive mini-language that consecution can use to create graphs.  The entropy
+# calculator built here is actually a tree, but any directed acyclic graph should work.
 pipeline = Pipeline(
     # nodes chained together with bash-like pipe symbols
     lines_from_file_names | words_from_line | [
