@@ -11,6 +11,13 @@ Consecution
 
 Introduction
 ---
+According to Wikipedia,
+
+> The concept of pipelines was invented by Douglas McIlroy at Unix's ancestral
+> home of Bell Labs, prior to the actual invention of the operating system, and
+> implemented in Unix at his insistence, shaping its toolbox philosophy.
+
+
 The unix work flow of piping data between small, specialized programs has proven
 to be extremely robust.  User who adopt this work flow do so by conceptualizaing
 their computation as a stream of data flowing through a series (or
