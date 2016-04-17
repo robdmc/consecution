@@ -16,6 +16,101 @@ According to Wikipedia,
 > The concept of pipelines was invented by Douglas McIlroy at Unix's ancestral home of Bell Labs, prior to the actual
 > invention of the operating system, and implemented in Unix at his insistence, shaping its toolbox philosophy.
 
+Consecution brings the pipeline design pattern to Python.  It lets you easily create and execute complex, directed-graph
+pipelines in Python.  It is a pip-installable, pure-python package with only optional dependencies that borrows the Topology
+abstraction from <a href="http://storm.apache.org/"> Apache Storm</a>.  It provides a simple, intuitive interface for
+building and executing pipelines.
+
+Perhaps the best way to explain consecution is with an example.  Here is a simple pipeline for computing the word
+and letter entropy from a collection of files.
+
+```python
+import sys
+import glob
+from consecution import Node, Pipeline
+from math import log
+
+# Define several nodes to use as pipeline components
+class LinesFromFileName(Node):
+    """
+    A class to extract lines from a file
+    """
+    def process(self, file_name):
+        with open(file_name) as file:
+            for line in file:
+                self.push(line)
+
+class WordsFromLine(Node):
+    """
+    A class to extract words from a line
+    """
+    def process(self, line):
+        line = line.strip()
+        if line:
+            for word in line.split():
+                self.push(word)
+
+class LettersFromWord(Node):
+    """
+    A class to extract letters from a word
+    """
+    def process(self, word):
+        for letter in word:
+            self.push(letter)
+
+
+class Entropy(Node):
+    """
+    A class to compute the Shannon entropy over a collection of items
+    """
+    def begin(self):
+        self.item_counts = {}
+        self.total_items = 0
+
+    def process(self, item):
+        count = self.item_counts.get(item, 0)
+        self.item_counts[item] = count + 1
+        self.total_items += 1
+
+    def end(self):
+        probabilities = [
+            float(count) / self.total_items for count in self.item_counts.values()
+        ]
+        entropy = sum([-p * log(p) for p in probabilities])
+
+        self.global_state['{}_entropy'.format(self.name)] = entropy
+
+
+# initialize a global_state object (dictionary in this example) that all nodes in the pipeline
+# can reference.
+global_state = {}
+
+# define the pipeline.  There are a couple different ways to do this.  This example
+# illustrates the intuitive mini-language consecution uses to create graphs
+pipeline = Pipeline(
+    global_state=global_state,
+
+    # nodes are chained together with bash-like pipe symbols
+    nodes=LinesFromFileName(name='lines_from_file_names') | WordsFromLine(name='words_from_line')
+
+    # Piping to a list of nodes broadcasts to each node (or branch) in the list
+    | [
+        Entropy(name='word_entropy'),
+        LettersFromWord('words') | Entropy(name='letter_entropy')
+      ]
+)
+
+# visualize the pipeline (requires the pydot2 pakage)
+pipeline.visualize(kind='png')
+
+# feed the pipeline an iterable
+pipeline.consume(glob.glob('./*.txt'))
+```
+
+
+Why Consecution
+---
+
 Avid Python users can easily create tools that read data from stdin and send processed output on stdout.  These tools
 are easily chained together in bash pipelines. Tools like <a href="https://github.com/robdmc/pandashells">
 Pandashells</a> make doing this even more convenient.
@@ -38,26 +133,6 @@ I can hear you saying.  "But this will not scale well for big data."  My respons
 big data.  And if you do, then you are probably better off using tools like Kafa, Storm, Hadoop, etc. that have
 been designed for scalability.  Consecution has been designed for the much more common case where you can handle
 everything on a single core.
-
-
-
-What's missing however is the ability to easily create a pure-python single-process pipeline
-
-
-
- produce processed data on stdout.  The unix work flow of piping data between
-small, specialized programs has proven to be extremely robust.  User who adopt
-this work flow do so by conceptualizaing their computation as a stream of data
-flowing through a series (or
-"consecution") of processing nodes.  Stream processing frameworks like <a
-href="http://storm.apache.org/">Apache Storm</a> expand on this process by
-creating an entire network of processing nodes where data flows in only one
-direction from inputs to outputs and never loops back.  Apache storm is an
-amazing project with unmatched robustness and scalability.  However, for the
-python programmer, its use requires the inconveniece of installing, configuring,
-and maintaining a java-based project.  It would be really nice to have a
-python-only implementation of the stream processing abstraction.  Consecution has
-been designed to meet these requirements.
 
 What is Consecution?
 ---
