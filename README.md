@@ -21,8 +21,8 @@ pipelines in Python.  It is a pip-installable, pure-python package with only opt
 abstraction from <a href="http://storm.apache.org/"> Apache Storm</a>.  It provides a simple, intuitive interface for
 building and executing pipelines.
 
-Perhaps the best way to explain consecution is with an example.  Here is a simple pipeline for computing the word
-and letter entropy from a collection of files.
+Perhaps the best way to explain consecution is to show a simple, contrived example of a pipeline that computis the word
+and letter entropy for the content in a batch of files.
 
 ```python
 from future import print_function
@@ -74,9 +74,11 @@ class Entropy(Node):
         self.total_items += 1
 
     def end(self):
+        # compute probbilities
         probabilities = [
             float(count) / self.total_items for count in self.item_counts.values()
         ]
+        # compute shannon entropy from probabilities
         entropy = sum([-p * log(p) for p in probabilities])
 
         self.global_state['{}_entropy'.format(self.name)] = entropy
@@ -95,6 +97,7 @@ pipeline = Pipeline(
     nodes=LinesFromFileName(name='lines_from_file_names') | WordsFromLine(name='words_from_line')
 
     # Piping to a list of nodes broadcasts to each node (or branch) in the list
+    # Routing is also possible, but not demonstrated here.
     | [
         Entropy(name='word_entropy'),
         LettersFromWord('words') | Entropy(name='letter_entropy')
