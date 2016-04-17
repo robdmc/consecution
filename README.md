@@ -16,10 +16,10 @@ According to Wikipedia,
 > The concept of pipelines was invented by Douglas McIlroy at Unix's ancestral home of Bell Labs, prior to the actual
 > invention of the operating system, and implemented in Unix at his insistence, shaping its toolbox philosophy.
 
-Consecution brings the pipeline design pattern to Python.  It lets you easily create and execute complex, directed-graph
-pipelines in Python.  It is a pip-installable, pure-python package with only optional dependencies that borrows the Topology
-abstraction from <a href="http://storm.apache.org/"> Apache Storm</a>.  It provides a simple, intuitive interface for
-building and executing pipelines.
+Consecution brings the pipeline design pattern to Python.  It lets you easily create and execute complex,
+directed-graph pipelines in Python.  It is a pip-installable, pure-python package with only optional dependencies that
+borrows ideas from the Topology abstraction from <a href="http://storm.apache.org/"> Apache Storm</a>.  It provides a
+simple, intuitive interface for building and executing pipelines.
 
 Perhaps the best way to explain consecution is to show a simple, contrived example of a pipeline that computes the word
 and letter entropy for the content in a batch of files.
