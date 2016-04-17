@@ -29,7 +29,7 @@ tools like <a href="http://dask.pydata.org/en/latest/"> Dask </a> and <a
 href="http://deeplearning.net/software/theano/"> Theano</a> provide different approaches for creating and executing
 computation graphs.
 
-What's missing, however, is a tool for creating pipeline -- or more precicely -- directed-graphs of processing nodes.
+What's missing, however, is a tool for creating pipelines &mdash; or more precicely &mdash; directed-graphs of processing nodes.
 Ideally the tool would be like a limited version of <a href="http://storm.apache.org/"> Apache Storm</a>.  It would
 incorporate a simplified version of the topology abstraction from Storm and create a syncrhonous, single-threaded
 execution strategy.  "But!"  I can hear you saying.  "This will not scale well for big data."  My response would be that
