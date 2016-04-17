@@ -30,8 +30,8 @@ href="http://deeplearning.net/software/theano/"> Theano</a> provide different ap
 computation graphs.
 
 What's missing, however, is a tool for creating pipeline -- or more precicely -- directed-graphs of processing nodes.
-Ideally the tools would be like a limited version of <a href="http://storm.apache.org/"> Apache Storm</a>.  It would
-incorporate a simplified version of the Apache Strom topology abstraction and create a syncrhonous, single-threaded
+Ideally the tool would be like a limited version of <a href="http://storm.apache.org/"> Apache Storm</a>.  It would
+incorporate a simplified version of the topology abstraction from Storm and create a syncrhonous, single-threaded
 execution strategy.  "But!"  I can hear you saying.  "This will not scale well for big data."  My response would be that
 you don't actually have big data.  And if you do, then you are probably better off using tools like Storm that have been
 specically designed to accomodate "big data".
