@@ -25,6 +25,7 @@ Perhaps the best way to explain consecution is with an example.  Here is a simpl
 and letter entropy from a collection of files.
 
 ```python
+from future import print_function
 import sys
 import glob
 from consecution import Node, Pipeline
@@ -105,6 +106,10 @@ pipeline.visualize(kind='png')
 
 # feed the pipeline an iterable
 pipeline.consume(glob.glob('./*.txt'))
+
+# after pipeline execution, global_state is populated with desired entropies
+print('Entropy results are {}'.format(global_state))
+
 ```
 
 
