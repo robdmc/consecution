@@ -13,39 +13,30 @@ Introduction
 ---
 According to Wikipedia,
 
-> The concept of pipelines was invented by Douglas McIlroy at Unix's ancestral
-> home of Bell Labs, prior to the actual invention of the operating system, and
-> implemented in Unix at his insistence, shaping its toolbox philosophy.
+> The concept of pipelines was invented by Douglas McIlroy at Unix's ancestral home of Bell Labs, prior to the actual
+> invention of the operating system, and implemented in Unix at his insistence, shaping its toolbox philosophy.
 
-Avid Python users can easily create tools that read data from stdin and send
-processed output on stdout.  These tools are easily chained together in bash
-pipelines. Tools like <a href="https://github.com/robdmc/pandashells">
+Avid Python users can easily create tools that read data from stdin and send processed output on stdout.  These tools
+are easily chained together in bash pipelines. Tools like <a href="https://github.com/robdmc/pandashells">
 Pandashells</a> make doing this even more convenient.
 
-The unix pipeline workflow, however, comes at a cost when building production
-systems.  If one process raises an error, the entire pipeline fails. Obtaining
-reliable and useful stack traces for what went wrong can also be annoying.
+The unix pipeline workflow, however, comes at a cost when building production systems.  If one process raises an error,
+the entire pipeline fails. Obtaining reliable and useful stack traces for what went wrong can also be annoying.
 
-It would be great if there was a way to implement the pipeline pattern in Python
-without resorting to system pipes. Functional libraries like  
-<a href="https://github.com/pytoolz/toolz"> toolz </a> help with composing
-functions and tools like 
-<a href="http://dask.pydata.org/en/latest/"> Dask </a> and
-<a href="http://deeplearning.net/software/theano/"> Theano</a>
-provide different approaches for creating and executing computation graphs.
+It would be great if there was a way to implement the pipeline pattern in Python without resorting to system pipes.
+Functional libraries like  <a href="https://github.com/pytoolz/toolz"> toolz </a> help with composing functions and
+tools like <a href="http://dask.pydata.org/en/latest/"> Dask </a> and <a
+href="http://deeplearning.net/software/theano/"> Theano</a> provide different approaches for creating and executing
+computation graphs.
 
-What's missing, however, is a tool for creating pipeline -- or more precicely --
-directed-graphs of processing nodes.  Ideally the tools would be like a
-limited version of 
-<a href="http://storm.apache.org/"> Apache Storm</a>.  It would incorporate a
-simplified version of the Apache Strom topology abstraction and create a
-syncrhonous, single-threaded execution strategy.  "But!"  I can hear you saying.
-"This will not scale well for big data."  My response would be that you don't
-actually have big data.  And if you do, then you are probably better off using
-tools like Storm that have been specically designed to accomodate "big data".
+What's missing, however, is a tool for creating pipeline -- or more precicely -- directed-graphs of processing nodes.
+Ideally the tools would be like a limited version of <a href="http://storm.apache.org/"> Apache Storm</a>.  It would
+incorporate a simplified version of the Apache Strom topology abstraction and create a syncrhonous, single-threaded
+execution strategy.  "But!"  I can hear you saying.  "This will not scale well for big data."  My response would be that
+you don't actually have big data.  And if you do, then you are probably better off using tools like Storm that have been
+specically designed to accomodate "big data".
 
-What's missing however is the ability to easily create a pure-python
-single-process pipeline
+What's missing however is the ability to easily create a pure-python single-process pipeline
 
 
 
