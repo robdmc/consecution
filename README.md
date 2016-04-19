@@ -37,6 +37,7 @@ class LinesFromFileName(Node):
     """
     A class to extract lines from a file.  The .push() method will send
     its argument to all downstream nodes directly connected to this one.
+    The .process() method is called once for each item pushed to the node.
     """
     def process(self, file_name):
         with open(file_name) as file:
