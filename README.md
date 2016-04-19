@@ -155,7 +155,7 @@ incorporate a simplified version of the topology abstraction from Storm and crea
 execution strategy.
 
 I can hear you saying.  "But this will not scale well for big data."  My response would be that you don't actually have
-big data.  And if you do, then you are probably better off using tools like Kafa, Storm, Hadoop, etc. that have
+big data.  And if you do, then you are probably better off using tools like Kafka, Storm, Hadoop, etc. that have
 been designed for scalability.  Consecution has been designed for the much more common case where you can handle
 everything on a single core.
 
