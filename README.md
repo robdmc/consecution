@@ -9,6 +9,15 @@ Right now this README file is as much a brainstorm for myself as anything else. 
 Consecution
 ===
 
+What is Consecution?
+---
+* A easy-to-use pipeline abstraction inspired by <a href="http://storm.apache.org/"> Apache Storm</a> Topologies
+* Designed to simplify building ETL pipelines that are robust, and easy to test
+* You define simple processing nodes, wire them together into a DAG, and feed the input node with an iterable
+* Synchronous, single-process execution designed to run efficiently on a single core
+* Efficient pure-python implementation with optional requirements needed only for graph visualization
+* Written with 100% test coverage
+
 Introduction
 ---
 According to Wikipedia,
@@ -17,9 +26,7 @@ According to Wikipedia,
 > invention of the operating system, and implemented in Unix at his insistence, shaping its toolbox philosophy.
 
 Consecution brings the pipeline design pattern to Python.  It lets you easily create and execute complex,
-directed-graph pipelines in Python.  It is a pip-installable, pure-python package with only optional dependencies that
-borrows ideas from the Topology abstraction from <a href="http://storm.apache.org/"> Apache Storm</a>.  It provides a
-simple, intuitive interface for building and executing pipelines.
+directed-graph pipelines in Python.  It is a pip-installable, and pure python.
 
 Perhaps the best way to explain consecution is to show a simple, contrived example of a pipeline that computes the word
 and letter entropy for the content in a batch of files.
