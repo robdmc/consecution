@@ -76,8 +76,7 @@ class Entropy(Node):
     A class to compute the Shannon entropy over a collection of items.
     This node uses a structure inspired by the BEGIN{} {} END{} directives
     in awk. The .begin() method is run at node initialization, and the .end()
-    method is run after the node has processed all items through the .process()
-    method.
+    method is run after the node has processed all items.
     """
     def begin(self):
         self.item_counts = {}
