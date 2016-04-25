@@ -48,8 +48,8 @@ IMAGE IMBED HERE
 
 This flowchart was actually drawn directly from the consecution code listed below.  Notice how simple each node is,
 and how data flows through each node, one item at a time.  Also notice how each node is able to initialize, maintain,
-and clean up its internal state.  Also notice how the mini-language for wiring nodes together actually has some visual
-similarity to the DAG itself.
+and clean up its internal state.  Finally, notice how the mini-language for wiring nodes together actually has some
+visual similarity to the DAG itself.
 
 
 
