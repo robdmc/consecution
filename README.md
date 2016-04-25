@@ -164,11 +164,11 @@ pipeline.visualize(kind='png')
 pipeline.consume(glob.glob('./*.txt'))
 ```
 
-As this example illustrates, using consecution is kind of taking the unix piping strategy and expanding it to work with
-DAGs.  Although tools like <a href="https://github.com/robdmc/pandashells">Pandashells</a> already simplify expressive
-Python operations at the bash prompt, the resulting pipelines can be annoying to debug and maintain in a production
-environment.  Not only does consecution alleviate this problem, it also greatly simplifies creating test harnesses for
-creating reliable, maintainable, and production-worthy code.
+As this example illustrates, consecution takes the unix piping paradigm and expands it to work with DAGs.  Although
+tools like <a href="https://github.com/robdmc/pandashells">Pandashells</a> already simplify expressive Python operations
+at the bash prompt, the resulting pipelines can be annoying to debug and maintain in a production environment.  Not only
+does consecution alleviate this problem, it also greatly simplifies creating test harnesses for creating reliable,
+maintainable, and production-worthy code.
 
 
 Why Consecution
