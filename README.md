@@ -20,6 +20,10 @@ What is Consecution?
 
 Introduction
 ---
+The word <a href="http://www.dictionary.com/browse/consecution">"consecution"</a> refers to a logical sequence or
+chain of reason, and quite accurately describes the idea of chaining together processing nodes into a directed acyclic
+compuatation graph.
+
 According to Wikipedia,
 
 > The concept of pipelines was invented by Douglas McIlroy at Unix's ancestral home of Bell Labs, prior to the actual
