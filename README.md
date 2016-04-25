@@ -167,5 +167,5 @@ pipeline.consume(glob.glob('./*.txt'))
 As this example illustrates, consecution takes the unix piping paradigm and expands it to work with DAGs.  Although
 tools like <a href="https://github.com/robdmc/pandashells">Pandashells</a> already simplify expressive Python operations
 at the bash prompt, the resulting pipelines can be annoying to debug and maintain in a production environment.  Not only
-does consecution alleviate this problem, it also greatly simplifies creating test harnesses for creating reliable,
+does consecution alleviate this problem, it also greatly simplifies creating test harnesses for producing reliable,
 maintainable, and production-worthy code.
