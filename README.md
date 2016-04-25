@@ -149,10 +149,12 @@ printer = Printer(name='printer')
 # list.  Routing is also possible, but not demonstrated here.  Piping from a list to a
 # node merges the output from all nodes/branches from the list into the destination node.
 pipeline = Pipeline(
-    lines_from_file_names | words_from_line | [
+    lines_from_file_names | words_from_line |
+    [
         word_entropy,
         letters_from_word | letter_entropy
-    ] | printer
+    ]
+    | printer
 )
 
 # visualize the pipeline (requires the pydot2 pakage)
