@@ -142,11 +142,12 @@ letter_entropy = Entropy(name='letter_entropy')
 printer = Printer(name='printer')
 
 
-# Wire up the nodes into a pipeline.  There are a couple different ways to do this.  This example illustrates the
-# intuitive mini-language that consecution can use to create graphs.  The pipe operator is used to connect nodes just
-# as it would be in bash to connect processes.  Piping to a list of nodes broadcasts to each node (or branch) in the
-# list.  Routing is also possible, but not demonstrated here.  Piping from a list to a node merges the output from all
-# nodes/branches from the list into the destination node.
+# Wire up the nodes into a pipeline.  There are a couple different ways to do this.  This
+# example illustrates the intuitive mini-language that consecution can use to create
+# graphs.  The pipe operator is used to connect nodes just as it would be in bash to
+# connect processes.  Piping to a list of nodes broadcasts to each node (or branch) in the
+# list.  Routing is also possible, but not demonstrated here.  Piping from a list to a
+# node merges the output from all nodes/branches from the list into the destination node.
 pipeline = Pipeline(
     lines_from_file_names | words_from_line | [
         word_entropy,
