@@ -13,9 +13,9 @@ What is Consecution?
 ---
 * An easy-to-use pipeline abstraction inspired by <a href="http://storm.apache.org/releases/current/Tutorial.html"> Apache Storm Topologies</a>
 * Designed to simplify building ETL pipelines that are robust and easy to test
-* A user defines simple processing nodes, wires them together into a DAG, and feeds the input node with an iterable
-* Synchronous, single-thread execution designed to run efficiently on a single core
-* Efficient pure-python implementation with optional requirements needed only for graph visualization
+* Simple processing nodes are wired together to form a DAG, and fed with a python iterable
+* Synchronous, single-thread execution is designed to run efficiently on a single core
+* Pure-python implementation with optional requirements that are needed only for graph visualization
 * Written with 100% test coverage
 
 Introduction
