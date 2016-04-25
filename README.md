@@ -39,10 +39,10 @@ processing nodes arranged in an arbitrarily complex DAG.  The advantage of this 
 
 Perhaps the best way to fully grasp consecution is to consider a simple (although admittedly contrived) example.
 Imagine you are given a list of files and your job is to compute the <a
-href="https://en.wiktionary.org/wiki/Shannon_entropy">Shannon Entropy</a> of the corpus of text contained in the files.
-You are to compute two entropies actually: One based on all the words in the file, and the other based on all the
-characters in the file. This task is actually fairly straightforward to visualize with a flow chart, or DAG, which
-is drawn here.
+href="https://en.wikipedia.org/wiki/Entropy_(information_theory)">Shannon Entropy</a> of the corpus of text contained
+in the files.  You are to compute two entropies actually: One based on all the words in the file, and the other based
+on all the characters in the file. This task is actually fairly straightforward to visualize with a flow chart, or
+DAG, which is drawn here.
 
 IMAGE IMBED HERE
 
