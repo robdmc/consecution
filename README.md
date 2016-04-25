@@ -22,7 +22,25 @@ Introduction
 ---
 The word <a href="http://www.dictionary.com/browse/consecution">"consecution"</a> refers to a logical sequence or
 chain of reason, and quite accurately describes the idea of chaining together processing nodes into a directed acyclic
-compuatation graph.
+graph (DAG) for computation.
+
+The way to think about consecution's work flow is to envision a single source of data broken up into individual little
+chunks, which we will call items.  In practice these items are elements of a Python iterable.  This precession of
+items are visualized as a data stream that can be split apart, recombined, and transformed through a network of simple
+processing nodes arranged in an arbitrarily complex DAG.  The advantage of this design are that:
+* Computations are more easily visualized making dependencies easy to understand, and systems easier to debug.
+* Nodes should be simple, small snippets of code designed to perform a single task with one input and one output.
+* Nodes can optionally access a global mutable-state object, but robust designs will minimize this interaction thereby
+  forcing loose coupling across the code-base.
+* Complex logic can be achieved by either making the nodes themselves more complex, or by pushing that complexity into
+  the topology of the graph by clever use of broadcast and routing and merging nodes.
+* The single-input / single-output node structure makes testing very easy.
+
+
+is passed through processing nodes arranged into a network that can split
+into the data stream into arbitarily complex
+With consecution, a user thinks about computations as if they consist of a data stream flowing through a network of
+connected nodes.  Each node is tasked with performing some simple task
 
 According to Wikipedia,
 
