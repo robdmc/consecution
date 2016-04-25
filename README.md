@@ -33,7 +33,7 @@ processing nodes arranged in an arbitrarily complex DAG.  The advantage of this 
 * Nodes can optionally access a global mutable-state object, but robust designs will minimize this interaction thereby
   forcing loose coupling across the code-base.
 * Complex logic can be achieved by either making the nodes themselves more complex, or by pushing that complexity into
-  the topology of the graph by clever use of broadcast and routing and merging nodes.
+  the topology of the graph by clever use of broadcast, routing and merging nodes.
 * The single-input / single-output node structure makes testing very easy.
 
 
