@@ -60,11 +60,10 @@ import glob
 from consecution import Node, Pipeline
 from math import log
 
-# Define several nodes to use as pipeline components
 
 class LinesFromFileName(Node):
     """
-    A class to extract lines from a file.  The .push() method will send
+    A node to extract lines from a file.  The .push() method will send
     its argument to all downstream nodes directly connected to this one.
     The .process() method is called once for each item pushed to the node.
     """
@@ -73,9 +72,10 @@ class LinesFromFileName(Node):
             for line in file:
                 self.push(line)
 
+
 class WordsFromLine(Node):
     """
-    A class to extract words from a line.  The if statement in this node
+    A node to extract words from a line.  The if statement in this node
     filters the output so that only lines with words are processed.
     """
     def process(self, line):
@@ -84,9 +84,10 @@ class WordsFromLine(Node):
             for word in line.split():
                 self.push(word)
 
+
 class LettersFromWord(Node):
     """
-    A class to extract letters from a word
+    A node to extract letters from a word
     """
     def process(self, word):
         for letter in word:
@@ -95,7 +96,7 @@ class LettersFromWord(Node):
 
 class Entropy(Node):
     """
-    A class to compute the Shannon entropy over a collection of items.
+    A node to compute the Shannon entropy over a collection of items.
     This node uses a structure inspired by the BEGIN{} {} END{} directives
     in awk. The .begin() method is run at node initialization, and the .end()
     method is run after the node has processed all items.
@@ -119,12 +120,14 @@ class Entropy(Node):
 
         self.push({'name': self.name, 'entropy': entropy}})
 
+
 class Printer(Node):
     """
     A simple node for printing results
     """
     def process(self, item):
         print('Entropy for {name} is {entropy}'.format(**item))
+
 
 # Create instances of nodes so that they can be wired together into a pipeline
 lines_frome_filename = LinesFromFileName(name='lines_from_file_name')
@@ -135,11 +138,11 @@ letter_entropy = Entropy(name='letter_entropy')
 printer = Printer(name='printer')
 
 
-# Wire up the nodes into a pipeline.  There are a couple different ways to do this.  This example
-# illustrates the intuitive mini-language that consecution can use to create graphs.  The pipe operator is used
-# just as it would be in bash to connect nodes.  Piping to a list of nodes broadcasts to each node (or branch)
-# in the list.  Routing is also possible, but not demonstrated here.  Piping from a list to a node merges input
-# from all nodes/branches from the list into the destination node.
+# Wire up the nodes into a pipeline.  There are a couple different ways to do this.  This example illustrates the
+# intuitive mini-language that consecution can use to create graphs.  The pipe operator is used to connect nodes just
+# as it would be in bash to connect processes.  Piping to a list of nodes broadcasts to each node (or branch) in the
+# list.  Routing is also possible, but not demonstrated here.  Piping from a list to a node merges input from all
+# nodes/branches from the list into the destination node.
 pipeline = Pipeline(
     lines_from_file_names | words_from_line | [
         word_entropy,
@@ -150,7 +153,7 @@ pipeline = Pipeline(
 # visualize the pipeline (requires the pydot2 pakage)
 pipeline.visualize(kind='png')
 
-# feed the pipeline an iterable
+# feed the pipeline with an iterable
 pipeline.consume(glob.glob('./*.txt'))
 ```
 
