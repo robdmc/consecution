@@ -29,7 +29,7 @@ chunks, which we will call items.  In practice these items are elements of a Pyt
 items are visualized as a data stream that can be split apart, recombined, and transformed through a network of simple
 processing nodes arranged in an arbitrarily complex DAG.  The advantage of this design are that:
 * Computations are more easily visualized making dependencies easy to understand, and systems easier to debug.
-* Nodes should be simple, small snippets of code designed to perform a single task with one input and one output.
+* Nodes are simple, small snippets of code designed to perform a single task with one input and one output.
 * Nodes can optionally access a global mutable-state object, but robust designs will minimize this interaction thereby
   forcing loose coupling across the code-base.
 * Complex logic can be achieved by either making the nodes themselves more complex, or by pushing that complexity into
