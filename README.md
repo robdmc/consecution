@@ -102,22 +102,26 @@ class Entropy(Node):
     method is run after the node has processed all items.
     """
     def begin(self):
+        # initialize internal state
         self.item_counts = {}
         self.total_items = 0
 
     def process(self, item):
+        # update internal state with item counts
         count = self.item_counts.get(item, 0)
         self.item_counts[item] = count + 1
         self.total_items += 1
 
     def end(self):
-        # compute probbilities
+        # compute probbilities from counts
         probabilities = [
             float(count) / self.total_items for count in self.item_counts.values()
         ]
+
         # compute shannon entropy from probabilities
         entropy = sum([-p * log(p) for p in probabilities])
 
+        # push shannon entropy downstream
         self.push({'name': self.name, 'entropy': entropy}})
 
 
