@@ -37,21 +37,21 @@ processing nodes arranged in an arbitrarily complex DAG.  The advantage of this 
 * The single-input / single-output node structure makes testing very easy.
 
 
-is passed through processing nodes arranged into a network that can split
-into the data stream into arbitarily complex
-With consecution, a user thinks about computations as if they consist of a data stream flowing through a network of
-connected nodes.  Each node is tasked with performing some simple task
+Perhaps the best way to fully grasp consecution is to consider a simple (although admittedly contrived) example.
+Imagine you are given a list of files and your job is to compute the <a
+href="https://en.wiktionary.org/wiki/Shannon_entropy">Shannon Entropy</a> of the corpus of text contained in the files.
+You are to compute two entropies actually: One based on all the words in the file, and the other based on all the
+characters in the file. This task is actually fairly straightforward to visualize with a flow chart, or DAG, which
+is drawn here.
 
-According to Wikipedia,
+IMAGE IMBED HERE
 
-> The concept of pipelines was invented by Douglas McIlroy at Unix's ancestral home of Bell Labs, prior to the actual
-> invention of the operating system, and implemented in Unix at his insistence, shaping its toolbox philosophy.
+This flowchart was actually drawn directly from the consecution code listed below.  Notice how simple each node is,
+and how data flows through one item at a time.  Also notice how each node is able to initialize, maintain, and clean
+up its internal state.  Also notice how the mini-language for wiring nodes together actually has some visual
+similarity to the DAG itself.
 
-Consecution brings the pipeline design pattern to Python.  It lets you easily create and execute complex,
-directed-graph pipelines in Python.  It is a pip-installable, and pure python.
 
-Perhaps the best way to explain consecution is to show a simple, contrived example of a pipeline that computes the word
-and letter entropy for the content in a batch of files.
 
 ```python
 from future import print_function
