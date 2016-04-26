@@ -37,6 +37,20 @@ What is Consecution?
 * Pure-python implementation with optional requirements that are needed only for graph visualization
 * Written with 100% test coverage
 
+Installation
+---
+Consecution is simple to install
+
+BORROWED FROM PANDASHELLS FOR NOW.  WILL FIX THIS UP LATER
+####Pandashells console tools
+Use this option to install Pandashells and only the console tools dependencies. This
+will not install the graphics dependencies (matplotlib and friends)
+<pre><code><strong>[~]$ pip install pandashells[console]</strong></code></pre>
+
+####Pandashells full install
+Use this option to install Pandashells and all dependencies
+<pre><code><strong>[~]$ pip install pandashells[full]</strong></code></pre>
+
 Overview
 ---
 The word <a href="http://www.dictionary.com/browse/consecution">"consecution"</a> refers to a logical sequence or
