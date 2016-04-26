@@ -9,6 +9,25 @@ Right now this README file is as much a brainstorm for myself as anything else. 
 Consecution
 ===
 
+Introduction
+---
+Unix pipes excel at tying together single-purpose executables into very useful pipelines.  Tools like <a
+href="https://github.com/robdmc/pandashells">Pandashells</a> make creating such pipelines with Python quite easy. These
+pipelines are fantastic for quick analyses or ad-hoc ETL tasks.  They are not, however, as good for creating robust,
+production-ready systems that are fully tested and easy to maintain.
+
+Consecution was built to address this need.  It borrows the unix pipeline workflow and expands it to handle arbitrarily
+complex networks of processing nodes that have been wired together to form a directed acyclic graph (DAG).
+
+Functional libraries like <a href="https://github.com/pytoolz/toolz">toolz</a> can be used to compose functions into
+pipelines, and tools like <a href="http://dask.pydata.org/en/latest/">Dask</a> and <a
+href="http://deeplearning.net/software/theano/">Theano</a> provide different approaches for creating and executing
+computation graphs.  What these tools lack, however, is a simple abstraction for wiring together processing nodes into a
+computation graph that can be fed with a data like a pipeline.
+
+Those familiar with <a href="http://storm.apache.org/">Apache Storm</a> will recognize what the Storm community calls a
+"topology."  Consecution is a topology-inspired abstraction for Python.
+
 What is Consecution?
 ---
 * An easy-to-use pipeline abstraction inspired by <a href="http://storm.apache.org/releases/current/Tutorial.html"> Apache Storm Topologies</a>
@@ -18,7 +37,7 @@ What is Consecution?
 * Pure-python implementation with optional requirements that are needed only for graph visualization
 * Written with 100% test coverage
 
-Introduction
+Overview
 ---
 The word <a href="http://www.dictionary.com/browse/consecution">"consecution"</a> refers to a logical sequence or
 chain of reason, and quite accurately describes the idea of chaining together processing nodes into a directed acyclic
@@ -163,9 +182,3 @@ pipeline.visualize(kind='png')
 # feed the pipeline with an iterable
 pipeline.consume(glob.glob('./*.txt'))
 ```
-
-As this example illustrates, consecution takes the unix piping paradigm and expands it to work with DAGs.  Although
-tools like <a href="https://github.com/robdmc/pandashells">Pandashells</a> already simplify expressive Python operations
-at the bash prompt, the resulting pipelines can be annoying to debug and maintain in a production environment.  Not only
-does consecution alleviate this problem, it also greatly simplifies creating test harnesses for producing reliable,
-maintainable, and production-worthy code.
