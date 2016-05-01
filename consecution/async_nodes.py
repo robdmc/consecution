@@ -648,8 +648,8 @@ if __name__ == '__main__':
     #producer | a | [
     #    b,
     #    c | [
-    #            e,
-    #            f  | [d, g, h, k, my_router] | i
+    #            d,
+    #            e  | [f, g, h, k, my_router] | i
     #    ] | j
     #] | m
 

@@ -1,9 +1,111 @@
 from unittest import TestCase
 from consecution.nodes import Node
 
-class SimpleTest(TestCase):
-    def test_producer(self):
+
+class PipelineCreationTests(TestCase):
+    def do_explicit_wiring(self):
+        # define nodes
         a = Node('a')
         b = Node('b')
         c = Node('c')
+        d = Node('d')
+        e = Node('e')
+        f = Node('f')
+        g = Node('g')
+        h = Node('h')
+        i = Node('i')
+        j = Node('j')
+        k = Node('k')
+        l = Node('l')
 
+        # save a list of all nodes
+        self.node_list = [a, b, c, d, e, f, g, h, i, j, k, l]
+        self.top_node = a
+
+        # wire up the nodes
+        a.add_downstream(b)
+        a.add_downstream(c)
+
+        c.add_downstream(d)
+        c.add_downstream(e)
+
+        e.add_downstream(f)
+        e.add_downstream(g)
+        e.add_downstream(h)
+        e.add_downstream(i)
+
+        f.add_downstream(j)
+        g.add_downstream(j)
+        h.add_downstream(j)
+        i.add_downstream(j)
+
+        d.add_downstream(k)
+        j.add_downstream(k)
+
+        b.add_downstream(l)
+        k.add_downstream(l)
+
+        # same network in graph notation
+        # a | [
+        #    b,
+        #    c | [
+        #            d,
+        #            e  | [f, g, h, i, my_router] | j
+        #    ] | k
+        # ] | l
+
+    def test_all_nodes(self):
+        self.do_explicit_wiring()
+        expected_set = set(self.node_list)
+        all_nodes_set = [
+            set(node.all_nodes) for node in self.node_list
+        ]
+        self.assertTrue(all(
+            [expected_set == found_set for found_set in all_nodes_set]))
+
+    def test_top_node(self):
+        self.do_explicit_wiring()
+        top_node_set = {node.top_node for node in self.node_list}
+        self.assertEqual(top_node_set, {self.top_node})
+
+    def test_duplicate_node(self):
+        self.do_explicit_wiring()
+        dup = Node('c')
+        with self.assertRaises(ValueError):
+            self.top_node.add_downstream(dup)
+
+    def test_multi_root(self):
+        self.do_explicit_wiring()
+        other_root = Node('dual_root')
+        other_root.add_downstream(self.top_node._downstream_nodes[0])
+
+        with self.assertRaises(ValueError):
+            other_root.top_node
+
+    def test_non_node_connect(self):
+        node = Node('a')
+        other = 'not a node'
+        with self.assertRaises(ValueError):
+            node.add_downstream(other)
+
+#  THIS IS A COMPLICATED TEST TOPOLOGY I MIGHT WANT TO USE
+# pre = Pass('pre')
+# a = Pass('a')
+# b = Pass('b')
+# c = Pass('c')
+# d = Pass('d')
+# e = Pass('e')
+# f = Pass('f')
+# g = Pass('g')
+# h = Pass('h')
+# i = Pass('i')
+# j = Pass('j')
+# k = Pass('k')
+# m = Printer('m')
+# producer | a | [
+#     b,
+#     c | [
+#             d,
+#             e  | [f, g, h, k, my_router] | i
+#     ] | j
+# ] | m
