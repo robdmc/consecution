@@ -1,8 +1,18 @@
+import os
+import shutil
+import tempfile
 from unittest import TestCase
 from consecution.nodes import Node
 
 
 class PipelineCreationTests(TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir)
+
+
     def do_explicit_wiring(self):
         # define nodes
         a = Node('a')
@@ -17,9 +27,11 @@ class PipelineCreationTests(TestCase):
         j = Node('j')
         k = Node('k')
         l = Node('l')
+        m = Node('m')
+        n = Node('n')
 
         # save a list of all nodes
-        self.node_list = [a, b, c, d, e, f, g, h, i, j, k, l]
+        self.node_list = [a, b, c, d, e, f, g, h, i, j, k, l, m, n]
         self.top_node = a
 
         # wire up the nodes
@@ -45,6 +57,9 @@ class PipelineCreationTests(TestCase):
         b.add_downstream(l)
         k.add_downstream(l)
 
+        l.add_downstream(m)
+        l.add_downstream(n)
+
         # same network in graph notation
         # a | [
         #    b,
@@ -52,7 +67,7 @@ class PipelineCreationTests(TestCase):
         #            d,
         #            e  | [f, g, h, i, my_router] | j
         #    ] | k
-        # ] | l
+        # ] | l [m, n]
 
     def test_all_nodes(self):
         self.do_explicit_wiring()
@@ -87,6 +102,14 @@ class PipelineCreationTests(TestCase):
         other = 'not a node'
         with self.assertRaises(ValueError):
             node.add_downstream(other)
+
+    def test_write(self):
+        self.do_explicit_wiring()
+        out_file = os.path.join(self.temp_dir, 'out.png')
+        self.top_node.draw_graph(out_file)
+
+        # uncomment the next line if you want to look at the graph
+        # os.system('cp {} /tmp'.format(out_file))
 
 #  THIS IS A COMPLICATED TEST TOPOLOGY I MIGHT WANT TO USE
 # pre = Pass('pre')
