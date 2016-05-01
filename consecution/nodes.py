@@ -21,6 +21,109 @@ class Node(object):
         """
         return hash(id(self))
 
+    def _validate_or_operator_args(self, other):
+        # define a default error message
+        default_msg = (
+            '\n\nError connecting {} to {}.\n'
+            'Only nodes or list of nodes or callables are allowed.'
+        ).format(self, other)
+
+        # nodes are okay
+        if isinstance(other, Node):
+            return
+
+        # make sure input lists are valid
+        if isinstance(other, list):
+            # count the number of elements of each type
+            num_callables, num_bad_kinds = 0, 0, 0
+            for el in other:
+                if hasattr(el, '__call__'):
+                    num_callables += 1
+                else:
+                    num_bad_kinds += 1
+
+            if num_bad_kinds > 0:
+                raise ValueError(default_msg)
+
+            if num_callables > 1:
+                msg = (
+                    '\n\nError connecting {} to {}.\n'
+                    'Mutliple routing functions found.'
+                ).format(self, other)
+
+        # everything but a node or a list is an error
+        else:
+            raise ValueError(default_msg)
+
+    def __or__(self, other):
+        # make sure arguments are valid
+        self._validate_or_operator_args(other)
+
+        # convert all input to list form
+        if isinstance(other, Node):
+            other = [other]
+
+        # separate node elements from routing function elements
+        downstream_nodes = [
+            el for el in other if isinstance(el, Node)]
+        routers = [
+            el for el in other if hasattr(el, '__call__')]
+
+        if routers:
+            raise NotImplementedError('Need to finish routing code')
+        else:
+            for downstream_node in downstream_nodes:
+                self.add_downstream(downstream_node)
+
+        out = list(self.terminal_node_set)
+        return out[0] if len(out) == 1 else out
+
+    def __ror__(self, other):
+        """
+        """
+        if isinstance(other, Node):
+            other = [other]
+
+        self.connect_inputs(*other)
+        out = list(self.terminal_node_set)
+        #print('{} | {} --> {}'.format(other, self, out))
+        return out[0] if len(out) == 1 else out
+
+    JUST COPIED THESE OVER FROM ASYNC NODES.  NEED TO MODIFY THIS LOGIC ACCORDINGLY
+    IM WORKING ON GETTING THE MINI-LANGUAGE UP AND GOING
+
+    I THINK I ALSO NEED TO BRING OVER THE CORRESPONDING OUTPUT CODE
+    def validate_inputs(self, upstreams):
+        if len(upstreams) == 0:
+            msg = (
+                'Error connecting {} to {}.\n'
+                'There must be at least one node to connect to.'
+            ).format(upstreams, self)
+            raise ValueError(msg)
+
+        if len(self.initial_node_set) > 1 and len(upstreams) > 1:
+            msg = (
+                'Error connecting {} to {}.\n'
+                'Many-to-many connections are not permitted'
+            ).format(upstreams, self)
+            raise ValueError(msg)
+        self._detect_cycles(upstreams, self.downstream_set)
+
+    def connect_inputs(self, *upstreams):
+        """
+        I think this is logic for connecting graph pieces
+        """
+        self.validate_inputs(upstreams)
+        for input_node in self.initial_node_set:
+            input_node.add_upstream_node(*upstreams)
+
+    END OF COPIED LOGIC
+
+
+
+
+
+
     @property
     def top_node(self):
         """
@@ -32,10 +135,35 @@ class Node(object):
                 root_nodes)
             raise ValueError(msg)
         else:
-            return root_nodes[0]
+            return root_nodes.pop()
+
+    @property
+    def terminal_node_set(self):
+        """
+        Find all terminal nodes rooted in this node
+        """
+        return {
+            node for node in self.depth_first_search('down')
+            if len(node._downstream_nodes) == 0
+        }
+
+    @property
+    def initial_node_set(self):
+        """
+        Find all initial nodes rooted at this node
+        """
+        self.depth_first_search('up')
+        return {
+            node for node in self.depth_first_search('up')
+            if len(node._upstream_nodes) == 0
+        }
+
 
     @property
     def root_nodes(self):
+        """
+        Find root nodes of entire connected network
+        """
         return [
             node for node in self.all_nodes
             if len(node._upstream_nodes) == 0
@@ -43,6 +171,9 @@ class Node(object):
 
     @property
     def all_nodes(self):
+        return self.depth_first_search('both')
+
+    def depth_first_search(self, direction='both'):
         """
         This is a depth first search using a stack to emulate recursion
         see good explanation at
@@ -66,8 +197,18 @@ class Node(object):
             # Make sure I don't visit this node again
             visited_nodes.add(node)
 
+            if direction == 'up':
+                neighbors = node._upstream_nodes
+            elif direction == 'down':
+                neighbors = node._downstream_nodes
+            elif direction == 'both':
+                neighbors = node._upstream_nodes + node._downstream_nodes
+            else:
+                raise ValueError(
+                    'direction must be \'up\', \'dowwn\' or \'both\'')
+
             # search all neightbors to this node for unvisited nodes
-            for node in node._upstream_nodes + node._downstream_nodes:
+            for node in neighbors:
                 # if you find unvisited node, add it to nodes needing visit
                 if node not in visited_nodes:
                     stack.append(node)
