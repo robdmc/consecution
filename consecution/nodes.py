@@ -35,11 +35,11 @@ class Node(object):
         # make sure input lists are valid
         if isinstance(other, list):
             # count the number of elements of each type
-            num_callables, num_bad_kinds = 0, 0, 0
+            num_callables, num_bad_kinds = 0, 0
             for el in other:
                 if hasattr(el, '__call__'):
                     num_callables += 1
-                else:
+                elif not isinstance(el, Node):
                     num_bad_kinds += 1
 
             if num_bad_kinds > 0:
@@ -63,6 +63,9 @@ class Node(object):
         if isinstance(other, Node):
             other = [other]
 
+        # need to snapshot current terminal set for returning later
+        terminal_node_set = self.terminal_node_set
+
         # separate node elements from routing function elements
         downstream_nodes = [
             el for el in other if isinstance(el, Node)]
@@ -70,13 +73,40 @@ class Node(object):
             el for el in other if hasattr(el, '__call__')]
 
         if routers:
-            raise NotImplementedError('Need to finish routing code')
+            raise NotImplementedError('need to write this logic')
         else:
-            for downstream_node in downstream_nodes:
-                self.add_downstream(downstream_node)
+            self.connect_outputs(*downstream_nodes)
 
-        out = list(self.terminal_node_set)
+        ## if only one downstream node, then just connect it
+        #if len(downstream_nodes) == 1:
+        #    self.connect_outputs(*downstream_nodes)
+        ## otherwise wire up a branching node
+        #else:
+        #    if routers:
+        #        raise NotImplementedError('need to write this logic')
+        #    else:
+        #        self.connect_outputs(
+        #    #branching_node = BranchingNode(name=self.name)
+        #    #if routers:
+        #    #    branching_node.set_routing_function(routers[0])
+        #    #self.connect_outputs(branching_node)
+        #    #branching_node.connect_outputs(*downstream_nodes)
+
+        #out = list(self.terminal_node_set)
+        out = list(terminal_node_set)
         return out[0] if len(out) == 1 else out
+
+
+
+
+        #if routers:
+        #    raise NotImplementedError('Need to finish routing code')
+        #else:
+        #    for downstream_node in downstream_nodes:
+        #        self.add_downstream(downstream_node)
+
+        #out = list(self.terminal_node_set)
+        #return out[0] if len(out) == 1 else out
 
     def __ror__(self, other):
         """
@@ -84,15 +114,18 @@ class Node(object):
         if isinstance(other, Node):
             other = [other]
 
+        #print '__ror__'
+        #print 'self', self
+        #print 'other', other
+
         self.connect_inputs(*other)
         out = list(self.terminal_node_set)
-        #print('{} | {} --> {}'.format(other, self, out))
+
+        # this is a useful debug line.  Don't delete it
+        # print('{} | {} --> {}'.format(other, self, out))
+
         return out[0] if len(out) == 1 else out
 
-    JUST COPIED THESE OVER FROM ASYNC NODES.  NEED TO MODIFY THIS LOGIC ACCORDINGLY
-    IM WORKING ON GETTING THE MINI-LANGUAGE UP AND GOING
-
-    I THINK I ALSO NEED TO BRING OVER THE CORRESPONDING OUTPUT CODE
     def validate_inputs(self, upstreams):
         if len(upstreams) == 0:
             msg = (
@@ -107,22 +140,70 @@ class Node(object):
                 'Many-to-many connections are not permitted'
             ).format(upstreams, self)
             raise ValueError(msg)
-        self._detect_cycles(upstreams, self.downstream_set)
+        #TODO:  Need to bring this over
+        #self._detect_cycles(upstreams, self.downstream_set)
 
     def connect_inputs(self, *upstreams):
         """
-        I think this is logic for connecting graph pieces
+        Logic for connecting sub-graphs
         """
         self.validate_inputs(upstreams)
-        for input_node in self.initial_node_set:
-            input_node.add_upstream_node(*upstreams)
 
-    END OF COPIED LOGIC
+        # need to use snapshot of initial_node_set because loop updates it
+        initial_node_set = self.initial_node_set
+
+        for upstream in upstreams:
+            for input_node in initial_node_set:
+                upstream.add_downstream(input_node)
+
+    def validate_outputs(self, downstreams):
+        if len(downstreams) == 0:
+            msg = (
+                'Error connecting {} to {}.\n'
+                'There must be at least one node to connect to.'
+            ).format(self, downstreams)
+            raise ValueError(msg)
+
+        if len(self.terminal_node_set) > 1 and len(downstreams) > 1:
+            msg = (
+                'Error connecting {} to {}.\n'
+                'Many-to-many connections are not permitted'
+            ).format(self, downstreams)
+            raise ValueError(msg)
+        #TODO bring this over too
+        #self._detect_cycles(self.upstream_set, downstreams)
+
+    def connect_outputs(self, *downstreams):
+        downstreams = list(downstreams)
+        self.validate_outputs(downstreams)
+        terminal_node_set = self.terminal_node_set
+        for term_node in terminal_node_set:
+            for downstream in downstreams:
+                term_node.add_downstream(downstream)
+
+    def _detect_cycles(self, upstreams, downstreams):
+        downstream_set = set()
+        upstream_set = set()
+
+        for downstream in downstreams:
+            downstream_set = downstream_set.union(
+                set(downstream.depth_first_search('down'))
+            )
+
+        for upstream in upstreams:
+            upstream_set = upstream_set.union(
+                set(upstream.depth_first_search('up'))
+            )
 
 
+        common_nodes = downstream_set.intersection(upstream_set)
 
-
-
+        if common_nodes:
+            msg = (
+                '\n\nLoop detected in pipeline graph.'
+                '  Node(s) {} encountered twice.'
+            ).format(common_nodes)
+            raise ValueError(msg)
 
     @property
     def top_node(self):
@@ -164,6 +245,11 @@ class Node(object):
         """
         Find root nodes of entire connected network
         """
+        print
+        print 'lookin for root'
+        for node in  sorted(self.all_nodes):
+            print node.name, node._upstream_nodes
+        print
         return [
             node for node in self.all_nodes
             if len(node._upstream_nodes) == 0
