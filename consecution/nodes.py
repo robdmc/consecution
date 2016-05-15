@@ -21,183 +21,211 @@ class Node(object):
         """
         return hash(id(self))
 
-    def _validate_or_operator_args(self, other):
-        # define a default error message
-        default_msg = (
-            '\n\nError connecting {} to {}.\n'
-            'Only nodes or list of nodes or callables are allowed.'
-        ).format(self, other)
-
-        # nodes are okay
-        if isinstance(other, Node):
-            return
-
-        # make sure input lists are valid
-        if isinstance(other, list):
-            # count the number of elements of each type
-            num_callables, num_bad_kinds = 0, 0
-            for el in other:
-                if hasattr(el, '__call__'):
-                    num_callables += 1
-                elif not isinstance(el, Node):
-                    num_bad_kinds += 1
-
-            if num_bad_kinds > 0:
-                raise ValueError(default_msg)
-
-            if num_callables > 1:
-                msg = (
-                    '\n\nError connecting {} to {}.\n'
-                    'Mutliple routing functions found.'
-                ).format(self, other)
-
-        # everything but a node or a list is an error
-        else:
-            raise ValueError(default_msg)
-
     def __or__(self, other):
-        # make sure arguments are valid
-        self._validate_or_operator_args(other)
+        #THIS IS VERY EXPERIMENTAL
+        left_slots = self.terminal_node_set
+        right_slots = set()
 
-
-
-        # convert all input to list form
         if isinstance(other, Node):
-            other = [other]
-
-        # need to snapshot current terminal set for returning later
-        terminal_node_set = self.terminal_node_set
-
-        # separate node elements from routing function elements
-        downstream_nodes = [
-            el for el in other if isinstance(el, Node)]
-        routers = [
-            el for el in other if hasattr(el, '__call__')]
-
-        if routers:
-            raise NotImplementedError('need to write this logic')
-        else:
-            self.connect_outputs(*downstream_nodes)
-
-        out = list(terminal_node_set)
-
-        # this is a useful debug line.  Don't delete it
-        print('or {} | {} --> {}:   init={}  term={}'.format(
-            self, other, out,
-            out[0].initial_node_set, out[0].terminal_node_set))
-
-        return out[0] if len(out) == 1 else out
+            right_slots = right_slots.union(other.initial_node_set)
+        elif isinstance(other, list):
+            for el in other:
 
 
 
+    #def _validate_or_operator_args(self, other):
+    #    # define a default error message
+    #    default_msg = (
+    #        '\n\nError connecting {} to {}.\n'
+    #        'Only nodes or list of nodes or callables are allowed.'
+    #    ).format(self, other)
 
-        #if routers:
-        #    raise NotImplementedError('Need to finish routing code')
-        #else:
-        #    for downstream_node in downstream_nodes:
-        #        self.add_downstream(downstream_node)
+    #    # nodes are okay
+    #    if isinstance(other, Node):
+    #        return
 
-        #out = list(self.terminal_node_set)
-        #return out[0] if len(out) == 1 else out
+    #    # make sure input lists are valid
+    #    if isinstance(other, list):
+    #        # count the number of elements of each type
+    #        num_callables, num_bad_kinds = 0, 0
+    #        for el in other:
+    #            if hasattr(el, '__call__'):
+    #                num_callables += 1
+    #            elif not isinstance(el, Node):
+    #                num_bad_kinds += 1
 
-    def __ror__(self, other):
-        """
-        """
-        if isinstance(other, Node):
-            other = [other]
+    #        if num_bad_kinds > 0:
+    #            raise ValueError(default_msg)
 
-        #print '__ror__'
-        #print 'self', self
-        #print 'other', other
+    #        if num_callables > 1:
+    #            msg = (
+    #                '\n\nError connecting {} to {}.\n'
+    #                'Mutliple routing functions found.'
+    #            ).format(self, other)
 
-        self.connect_inputs(*other)
-        out = list(self.terminal_node_set)
+    #    # everything but a node or a list is an error
+    #    else:
+    #        raise ValueError(default_msg)
 
-        # this is a useful debug line.  Don't delete it
-        print('ror {} | {} --> {}:   init={}  term={}'.format(
-            other, self, out,
-            out[0].initial_node_set, out[0].terminal_node_set))
-
-        return out[0] if len(out) == 1 else out
-
-    def validate_inputs(self, upstreams):
-        if len(upstreams) == 0:
-            msg = (
-                'Error connecting {} to {}.\n'
-                'There must be at least one node to connect to.'
-            ).format(upstreams, self)
-            raise ValueError(msg)
-
-        if len(self.initial_node_set) > 1 and len(upstreams) > 1:
-            msg = (
-                'Error connecting {} to {}.\n'
-                'Many-to-many connections are not permitted'
-            ).format(upstreams, self)
-            raise ValueError(msg)
-        #TODO:  Need to bring this over
-        #self._detect_cycles(upstreams, self.downstream_set)
-
-    def connect_inputs(self, *upstreams):
-        """
-        Logic for connecting sub-graphs
-        """
-        self.validate_inputs(upstreams)
-
-        # need to use snapshot of initial_node_set because loop updates it
-        initial_node_set = self.initial_node_set
-
-        for upstream in upstreams:
-            for input_node in initial_node_set:
-                upstream.add_downstream(input_node)
-
-    def validate_outputs(self, downstreams):
-        if len(downstreams) == 0:
-            msg = (
-                'Error connecting {} to {}.\n'
-                'There must be at least one node to connect to.'
-            ).format(self, downstreams)
-            raise ValueError(msg)
-
-        if len(self.terminal_node_set) > 1 and len(downstreams) > 1:
-            msg = (
-                'Error connecting {} to {}.\n'
-                'Many-to-many connections are not permitted'
-            ).format(self, downstreams)
-            raise ValueError(msg)
-        #TODO bring this over too
-        #self._detect_cycles(self.upstream_set, downstreams)
-
-    def connect_outputs(self, *downstreams):
-        downstreams = list(downstreams)
-        self.validate_outputs(downstreams)
-        terminal_node_set = self.terminal_node_set
-        for term_node in terminal_node_set:
-            for downstream in downstreams:
-                term_node.add_downstream(downstream)
-
-    def _detect_cycles(self, upstreams, downstreams):
-        downstream_set = set()
-        upstream_set = set()
-
-        for downstream in downstreams:
-            downstream_set = downstream_set.union(
-                set(downstream.depth_first_search('down'))
-            )
-
-        for upstream in upstreams:
-            upstream_set = upstream_set.union(
-                set(upstream.depth_first_search('up'))
-            )
+    #@staticmethod
+    #def flatten(other):
+    #    out = []
+    #    if isinstance(other, list):
+    #        for el in other:
+    #            if isinstance(el, list):
+    #                out.extend(el)
+    #            else:
+    #                out.append(el)
+    #    return out
 
 
-        common_nodes = downstream_set.intersection(upstream_set)
+    #def __or__(self, other):
+    #    # make sure arguments are valid
+    #    other = self.flatten(other)
+    #    self._validate_or_operator_args(other)
 
-        if common_nodes:
-            msg = (
-                '\n\nLoop detected in pipeline graph.'
-                '  Node(s) {} encountered twice.'
-            ).format(common_nodes)
-            raise ValueError(msg)
+
+
+    #    # convert all input to list form
+    #    if isinstance(other, Node):
+    #        other = list(other.initial_node_set)
+
+    #    ## need to snapshot current terminal set for returning later
+    #    #terminal_node_set = self.terminal_node_set
+
+    #    # separate node elements from routing function elements
+    #    downstream_nodes = [
+    #        el for el in other if isinstance(el, Node)]
+    #    routers = [
+    #        el for el in other if hasattr(el, '__call__')]
+
+    #    if routers:
+    #        raise NotImplementedError('need to write this logic')
+    #    else:
+    #        self.connect_outputs(*downstream_nodes)
+
+    #    out = list(self.terminal_node_set)
+
+    #    # this is a useful debug line.  Don't delete it
+    #    print('or {} | {} --> {}:   init={}  term={}'.format(
+    #        self, other, out,
+    #        out[0].initial_node_set, out[0].terminal_node_set))
+
+    #    #return out[0] if len(out) == 1 else out
+    #    print '*** out = ', out
+    #    return out
+
+
+
+
+    #    #if routers:
+    #    #    raise NotImplementedError('Need to finish routing code')
+    #    #else:
+    #    #    for downstream_node in downstream_nodes:
+    #    #        self.add_downstream(downstream_node)
+
+    #    #out = list(self.terminal_node_set)
+    #    #return out[0] if len(out) == 1 else out
+
+    #def __ror__(self, other):
+    #    """
+    #    """
+    #    if isinstance(other, Node):
+    #        other = list(other.terminal_node_set)
+
+    #    #print '__ror__'
+    #    #print 'self', self
+    #    #print 'other', other
+
+    #    self.connect_inputs(*other)
+    #    out = list(self.terminal_node_set)
+
+    #    # this is a useful debug line.  Don't delete it
+    #    print('ror {} | {} --> {}:   init={}  term={}'.format(
+    #        other, self, out,
+    #        out[0].initial_node_set, out[0].terminal_node_set))
+    #    print '*** out = ', out
+
+    #    return out[0] if len(out) == 1 else out
+
+    #def validate_inputs(self, upstreams):
+    #    if len(upstreams) == 0:
+    #        msg = (
+    #            'Error connecting {} to {}.\n'
+    #            'There must be at least one node to connect to.'
+    #        ).format(upstreams, self)
+    #        raise ValueError(msg)
+
+    #    if len(self.initial_node_set) > 1 and len(upstreams) > 1:
+    #        msg = (
+    #            'Error connecting {} to {}.\n'
+    #            'Many-to-many connections are not permitted'
+    #        ).format(upstreams, self)
+    #        raise ValueError(msg)
+    #    #TODO:  Need to bring this over
+    #    #self._detect_cycles(upstreams, self.downstream_set)
+
+    #def connect_inputs(self, *upstreams):
+    #    """
+    #    Logic for connecting sub-graphs
+    #    """
+    #    self.validate_inputs(upstreams)
+
+    #    # need to use snapshot of initial_node_set because loop updates it
+    #    initial_node_set = self.initial_node_set
+
+    #    for upstream in upstreams:
+    #        for input_node in initial_node_set:
+    #            upstream.add_downstream(input_node)
+
+    #def validate_outputs(self, downstreams):
+    #    if len(downstreams) == 0:
+    #        msg = (
+    #            'Error connecting {} to {}.\n'
+    #            'There must be at least one node to connect to.'
+    #        ).format(self, downstreams)
+    #        raise ValueError(msg)
+
+    #    if len(self.terminal_node_set) > 1 and len(downstreams) > 1:
+    #        msg = (
+    #            'Error connecting {} to {}.\n'
+    #            'Many-to-many connections are not permitted'
+    #        ).format(self, downstreams)
+    #        raise ValueError(msg)
+    #    #TODO bring this over too
+    #    #self._detect_cycles(self.upstream_set, downstreams)
+
+    #def connect_outputs(self, *downstreams):
+    #    downstreams = list(downstreams)
+    #    self.validate_outputs(downstreams)
+    #    terminal_node_set = self.terminal_node_set
+    #    for term_node in terminal_node_set:
+    #        for downstream in downstreams:
+    #            term_node.add_downstream(downstream)
+
+    #def _detect_cycles(self, upstreams, downstreams):
+    #    downstream_set = set()
+    #    upstream_set = set()
+
+    #    for downstream in downstreams:
+    #        downstream_set = downstream_set.union(
+    #            set(downstream.depth_first_search('down'))
+    #        )
+
+    #    for upstream in upstreams:
+    #        upstream_set = upstream_set.union(
+    #            set(upstream.depth_first_search('up'))
+    #        )
+
+
+    #    common_nodes = downstream_set.intersection(upstream_set)
+
+    #    if common_nodes:
+    #        msg = (
+    #            '\n\nLoop detected in pipeline graph.'
+    #            '  Node(s) {} encountered twice.'
+    #        ).format(common_nodes)
+    #        raise ValueError(msg)
 
     @property
     def top_node(self):

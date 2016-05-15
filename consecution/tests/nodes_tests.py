@@ -98,6 +98,10 @@ class ExplicitWiringTests(TestCase):
         # THIS IS A PROBLEM.  I'M THINKING I WANT TO MAKE IT SO THAT
         # WHEN THIS IS ENCOUNTERED, [C, D] WILL GET FLATTENED INTO
         # THEIR CONTAINING LIST
+
+        # I'M THINKING ABOUT MAKING A SUBGRAPH CLASS THAT IS ALWAYS RETURNED
+        # BY __OR__ AND __ROR__.  THAT WAY I CAN MORE INTELLIGENTLY HANDLE
+        # ALWAYS CONNECTING TO INITIAL NODES AND TERMINAL NODES PROPERLY.
         #print
         #print '*'*80
         #print [a, b] | c
@@ -110,7 +114,6 @@ class ExplicitWiringTests(TestCase):
         #   b,
         #   c | [
         #           d,
-        #           #e  | [f, g, h, i, my_router] | j
         #           e  | [f, g, h, i] | j
         #   ] | k
         #] | l | [m, n]
