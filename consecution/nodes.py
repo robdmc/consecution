@@ -59,6 +59,8 @@ class Node(object):
         # make sure arguments are valid
         self._validate_or_operator_args(other)
 
+
+
         # convert all input to list form
         if isinstance(other, Node):
             other = [other]
@@ -77,23 +79,13 @@ class Node(object):
         else:
             self.connect_outputs(*downstream_nodes)
 
-        ## if only one downstream node, then just connect it
-        #if len(downstream_nodes) == 1:
-        #    self.connect_outputs(*downstream_nodes)
-        ## otherwise wire up a branching node
-        #else:
-        #    if routers:
-        #        raise NotImplementedError('need to write this logic')
-        #    else:
-        #        self.connect_outputs(
-        #    #branching_node = BranchingNode(name=self.name)
-        #    #if routers:
-        #    #    branching_node.set_routing_function(routers[0])
-        #    #self.connect_outputs(branching_node)
-        #    #branching_node.connect_outputs(*downstream_nodes)
-
-        #out = list(self.terminal_node_set)
         out = list(terminal_node_set)
+
+        # this is a useful debug line.  Don't delete it
+        print('or {} | {} --> {}:   init={}  term={}'.format(
+            self, other, out,
+            out[0].initial_node_set, out[0].terminal_node_set))
+
         return out[0] if len(out) == 1 else out
 
 
@@ -122,7 +114,9 @@ class Node(object):
         out = list(self.terminal_node_set)
 
         # this is a useful debug line.  Don't delete it
-        # print('{} | {} --> {}'.format(other, self, out))
+        print('ror {} | {} --> {}:   init={}  term={}'.format(
+            other, self, out,
+            out[0].initial_node_set, out[0].terminal_node_set))
 
         return out[0] if len(out) == 1 else out
 

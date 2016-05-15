@@ -98,7 +98,12 @@ class ExplicitWiringTests(TestCase):
         # THIS IS A PROBLEM.  I'M THINKING I WANT TO MAKE IT SO THAT
         # WHEN THIS IS ENCOUNTERED, [C, D] WILL GET FLATTENED INTO
         # THEIR CONTAINING LIST
-        a | [b, [c, d]]
+        #print
+        #print '*'*80
+        #print [a, b] | c
+        a |[b, [c, d] | e]
+        #print '*'*80
+        #a | [b, [d, e] | e]
 
         # wire up nodes using dsl
         #a | [
