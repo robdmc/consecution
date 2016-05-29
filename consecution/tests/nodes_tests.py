@@ -103,7 +103,6 @@ class ExplicitWiringTests(TestCase):
                    ] | k
             ] | l | [m, n]
 
-        a.draw_graph('/tmp/out.png')
 
     def test_connections(self):
         Conns = namedtuple('Conns', 'node upstreams downstreams')
@@ -176,11 +175,6 @@ class ExplicitWiringTests(TestCase):
         self.do_wiring()
         other_root = Node('dual_root')
         other_root.add_downstream(self.top_node._downstream_nodes[0])
-
-        print
-        print '*'*80
-        print 'initial_node_set'
-        print self.top_node.initial_node_set
 
         with self.assertRaises(ValueError):
             other_root.top_node
