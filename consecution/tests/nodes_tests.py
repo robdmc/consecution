@@ -1,4 +1,5 @@
 import os
+from collections import namedtuple
 import shutil
 import tempfile
 from unittest import TestCase
@@ -102,8 +103,54 @@ class ExplicitWiringTests(TestCase):
                    ] | k
             ] | l | [m, n]
 
-        #a.draw_graph('/tmp/out.png')
+        a.draw_graph('/tmp/out.png')
 
+    def test_connections(self):
+        Conns = namedtuple('Conns', 'node upstreams downstreams')
+        self.do_wiring()
+        n = {
+            node.name: Conns(
+                node.name,
+                {u.name for u in node._upstream_nodes},
+                {d.name for d in node._downstream_nodes}
+            )
+            for node in self.node_list
+        }
+        self.assertEqual(n['a'].upstreams, set())
+        self.assertEqual(n['a'].downstreams, {'b', 'c'})
+
+        self.assertEqual(n['b'].upstreams, {'a'})
+        self.assertEqual(n['b'].downstreams, {'l'})
+
+        self.assertEqual(n['c'].upstreams, {'a'})
+        self.assertEqual(n['c'].downstreams, {'d', 'e'})
+
+        self.assertEqual(n['e'].upstreams, {'c'})
+        self.assertEqual(n['e'].downstreams, {'f','g','h','i'})
+
+        self.assertEqual(n['f'].upstreams, {'e'})
+        self.assertEqual(n['f'].downstreams, {'j'})
+
+        self.assertEqual(n['g'].upstreams, {'e'})
+        self.assertEqual(n['g'].downstreams, {'j'})
+
+        self.assertEqual(n['h'].upstreams, {'e'})
+        self.assertEqual(n['h'].downstreams, {'j'})
+
+        self.assertEqual(n['i'].upstreams, {'e'})
+        self.assertEqual(n['i'].downstreams, {'j'})
+
+        self.assertEqual(n['d'].upstreams, {'c'})
+        self.assertEqual(n['d'].downstreams, {'k'})
+
+        self.assertEqual(n['j'].upstreams, {'f','g','h','i'})
+        self.assertEqual(n['j'].downstreams, {'k'})
+
+        self.assertEqual(n['k'].upstreams, {'j', 'd'})
+        self.assertEqual(n['k'].downstreams, {'l'})
+
+        self.assertEqual(n['l'].upstreams, {'k', 'b'})
+        self.assertEqual(n['l'].downstreams, {'m', 'n'})
 
     def test_all_nodes(self):
         self.do_wiring()

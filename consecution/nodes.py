@@ -51,9 +51,6 @@ class Node(object):
     def _connect_lefts_to_rights(self, lefts, rights):
         slots_from_left = self._get_exposed_slots(lefts, pointing='right')
         slots_from_right = self._get_exposed_slots(rights, pointing='left')
-        print
-        print 'connecting'
-        print slots_from_left, '>>>', slots_from_right
         for left, right in product(slots_from_left, slots_from_right):
             left.add_downstream(right)
 
