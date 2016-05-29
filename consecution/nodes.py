@@ -1,3 +1,5 @@
+from itertools import product
+
 class Node(object):
     def __init__(self, name):
         self.name = name
@@ -21,15 +23,49 @@ class Node(object):
         """
         return hash(id(self))
 
-    def __or__(self, other):
-        #THIS IS VERY EXPERIMENTAL
-        left_slots = self.terminal_node_set
-        right_slots = set()
+    def _get_flattened_list(self, obj):
+        if isinstance(obj, Node):
+            return [obj]
 
-        if isinstance(other, Node):
-            right_slots = right_slots.union(other.initial_node_set)
-        elif isinstance(other, list):
-            for el in other:
+        elif hasattr(obj, '__iter__'):
+            nodes = []
+            for el in obj:
+                if isinstance(el, Node):
+                    nodes.append(el)
+                elif hasattr(el, '__iter__'):
+                    nodes.extend(self._get_flattened_list(el))
+            return nodes
+
+    def _get_exposed_slots(self, obj, pointing):
+        nodes = set()
+        for node in self._get_flattened_list(obj):
+            if pointing == 'left':
+                nodes = nodes.union(node.initial_node_set)
+            elif pointing == 'right':
+                nodes = nodes.union(node.terminal_node_set)
+            else:
+                raise ValueError('pointing must be "left" or "right"')
+        return nodes
+
+
+    def _connect_lefts_to_rights(self, lefts, rights):
+        slots_from_left = self._get_exposed_slots(lefts, pointing='right')
+        slots_from_right = self._get_exposed_slots(rights, pointing='left')
+        print
+        print 'connecting'
+        print slots_from_left, '>>>', slots_from_right
+        for left, right in product(slots_from_left, slots_from_right):
+            left.add_downstream(right)
+
+    def __or__(self, other):
+        self._connect_lefts_to_rights(self, other)
+        #print self,  '|', other, '->', self, '{{', self.initial_node_set, self.terminal_node_set
+        return self
+
+    def __ror__(self, other):
+        self._connect_lefts_to_rights(other, self)
+        #print other, '|', self, '->', self, '{{', self.initial_node_set, self.terminal_node_set
+        return self
 
 
 
@@ -419,5 +455,3 @@ class Node(object):
             from IPython.display import Image, display
             graph.write_png(file_name)
             display(Image(filename=file_name))
-
-

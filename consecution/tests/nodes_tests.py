@@ -70,6 +70,8 @@ class ExplicitWiringTests(TestCase):
         #    ] | k
         # ] | l [m, n]
 
+        #a.draw_graph('/tmp/out.png')
+
     def do_graph_wiring(self):
         # define nodes
         a = Node('a')
@@ -91,32 +93,17 @@ class ExplicitWiringTests(TestCase):
         self.node_list = [a, b, c, d, e, f, g, h, i, j, k, l, m, n]
         self.top_node = a
 
-
-        #a | [b, c | d]
-        #a | [b, c | d]
-
-        # THIS IS A PROBLEM.  I'M THINKING I WANT TO MAKE IT SO THAT
-        # WHEN THIS IS ENCOUNTERED, [C, D] WILL GET FLATTENED INTO
-        # THEIR CONTAINING LIST
-
-        # I'M THINKING ABOUT MAKING A SUBGRAPH CLASS THAT IS ALWAYS RETURNED
-        # BY __OR__ AND __ROR__.  THAT WAY I CAN MORE INTELLIGENTLY HANDLE
-        # ALWAYS CONNECTING TO INITIAL NODES AND TERMINAL NODES PROPERLY.
-        #print
-        #print '*'*80
-        #print [a, b] | c
-        a |[b, [c, d] | e]
-        #print '*'*80
-        #a | [b, [d, e] | e]
-
         # wire up nodes using dsl
-        #a | [
-        #   b,
-        #   c | [
-        #           d,
-        #           e  | [f, g, h, i] | j
-        #   ] | k
-        #] | l | [m, n]
+        a | [
+               b,
+               c | [
+                       d,
+                       e  | [f, g, h, i] | j
+                   ] | k
+            ] | l | [m, n]
+
+        #a.draw_graph('/tmp/out.png')
+
 
     def test_all_nodes(self):
         self.do_wiring()
