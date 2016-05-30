@@ -1,3 +1,4 @@
+from collections import Counter
 import hashlib
 from itertools import product
 
@@ -22,14 +23,19 @@ class Node(object):
         """
         define __hash__ method. dicts and sets will use this as key
         """
-        h = hashlib.sha1()
-        h.update(self.name)
-        out = int(h.hexdigest(), 16)
-        out = out % (2 ** (8*4))
-        return out
+        return id(self)
+
+        #h = hashlib.sha1()
+        #h.update(self.name)
+        #out = int(h.hexdigest(), 16)
+        #out = out % (2 ** (8*4))
+        #return out
 
     def __eq__(self, other):
         return self.__hash__() == other.__hash__()
+
+    def __lt__(self, other):
+        return self.name < other.name
 
     def __getitem__(self, key):
         msg = (
@@ -128,7 +134,6 @@ class Node(object):
     def all_nodes(self):
         return self.depth_first_search('both')
 
-
     def depth_first_search(self, direction='both'):
         """
         This is a depth first search using a stack to emulate recursion
@@ -172,37 +177,37 @@ class Node(object):
         # should have hit all nodes in the graph at this point
         return visited_nodes
 
+    def _check_for_dups(self):
+        counter = Counter()
+        for node in self.all_nodes:
+            counter.update({node.name: 1})
+        dups = [name for (name, count) in counter.items() if count > 1]
+        if dups:
+            msg = (
+                '\n\nNode names must be unique.  Dupicates {} found.'
+            ).format(list(dups))
+            raise ValueError(msg)
+        return
+
+    def _check_for_cycles(self):
+        self_and_upstreams = self.depth_first_search('up')
+        downstreams = self.depth_first_search('down') - {self}
+        common_nodes = self_and_upstreams.intersection(downstreams)
+        if common_nodes:
+            raise ValueError('\n\nYour graph is not acyclic.  It has loops.')
+
     def _validate_node(self, other):
-        THIS IS NOT WORKING PROPERLY
-        I WANT IT TO DETECT CYCLES AND DUPS
-        MAYBE I SHOULD SPLIT THIS INTO TO METHODS.
         # only nodes allowed to be connected
         if not isinstance(other, Node):
             raise ValueError('Trying to connect a non-node type')
-
-        upstreams = self.depth_first_search('bo')
-        downstreams = other.depth_first_search('down')
-
-        if self.name == 'a':
-            print
-            print 'self', self
-            print 'upstreams', upstreams
-            print 'downstreams', downstreams
-
-        common_nodes = upstreams.intersection(downstreams)
-        if common_nodes:
-            if common_nodes != upstreams:
-                msg = (
-                    '\n\nNode names must be unique.  Dupicates {} found.'
-                ).format(list(common_nodes))
-                raise ValueError(msg)
-            else:
-                raise ValueError('\n\nYour graph is not acyclic.\n')
 
     def add_downstream(self, other):
         self._validate_node(other)
         self._downstream_nodes.append(other)
         other._upstream_nodes.append(self)
+
+        self._check_for_dups()
+        self._check_for_cycles()
 
         self._pydot_edge_kwarg_list.append(
             dict(src=self.name, dst=other.name, dir='forward'))

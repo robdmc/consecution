@@ -167,19 +167,22 @@ class ExplicitWiringTests(TestCase):
 
     def test_duplicate_node(self):
         self.do_wiring()
-        dup = Node('c')
 
+        # this test is funky in that it has assertion in a loop.
+        # but I wanted to be sure cycles are detected everywhere 
+        for name in [n.name for n in self.top_node.all_nodes]:
+            dup = Node(name)
+            with self.assertRaises(ValueError):
+                self.top_node.add_downstream(dup)
 
+    def test_acyclic(self):
+        self.do_wiring()
 
-
-        self.top_node.add_downstream(dup)
-
-        dup.top_node.draw_graph('graph.png')
-        return
-
-
-        with self.assertRaises(ValueError):
-            self.top_node.add_downstream(dup)
+        # this test is funky in that it has assertion in a loop.
+        # but I wanted to be sure dups are detected everywhere 
+        for node in self.top_node.all_nodes:
+           with self.assertRaises(ValueError):
+                node.add_downstream(self.top_node)
 
     def test_multi_root(self):
         self.do_wiring()
@@ -208,22 +211,15 @@ class DSLWiringTests(ExplicitWiringTests):
         self.do_graph_wiring()
 
 
-class DuplicateTests(TestCase):
-    def test_duplicate_node(self):
-        a = Node('a')
-        b = Node('b')
-        c = Node('a')
+#class DuplicateTests(TestCase):
+#    def test_duplicate_node(self):
+#        a = Node('a')
+#        b = Node('b')
+#        c = Node('a')
+#
+#        with self.assertRaises(ValueError):
+#            a | b | c
 
-        with self.assertRaises(ValueError):
-            a | b | c
-
-    def test_acyclic(self):
-        a = Node('a')
-        b = Node('b')
-        c = Node('c')
-
-        with self.assertRaises(ValueError):
-            a | b | a
 
 
 
