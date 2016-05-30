@@ -6,8 +6,14 @@ class AckerEntry:
         self.ack_hash = item.key
         self.item = item
 
-    async def xor_item(self, item):
+    def xor_item(self, item):
         self.ack_hash = self.ack_hash ^ item.key
+
+    def __str__(self):
+        return 'Entry({})'.format(self.item)
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class Acker:
@@ -15,18 +21,18 @@ class Acker:
         self.entry_at_key = {}
         self.anchor_keys_for_item_key = defaultdict(set)
 
-    async def register(self, item, anchor=None):
+    def register(self, item, anchor=None):
         # create an entry for the newly registered item
         self.entry_at_key[item.key] = AckerEntry(item)
 
         if anchor:
-            await self.add_anchor(item, anchor)
+            self.add_anchor(item, anchor)
 
-    async def add_anchor(self, item, anchor):
+    def add_anchor(self, item, anchor):
         self.anchor_keys_for_item_key[item.key].add(anchor.key)
         self.entry_at_key[anchor.key].xor_item(item)
 
-    async def ack(self, item):
+    def ack(self, item):
         # ack this item for all its anchors
         anchor_keys_to_delete = []
         for anchor_key in self.anchor_keys_for_item_key[item.key]:
@@ -41,11 +47,9 @@ class Acker:
             del self.entry_at_key[anchor_key]
             del self.anchor_keys_for_item_key[anchor_key]
 
-
         # ack the current item by xor with itself
         item_entry = self.entry_at_key[item.key]
         item_entry.xor_item(item)
-
 
         # if entry is acked, delete it
         if item_entry.ack_hash == 0:
@@ -53,15 +57,26 @@ class Acker:
             del self.anchor_keys_for_item_key[item.key]
 
     def __str__(self):
-        return (
+        def key_func(tup):
+            key, entry = tup
+            key_str = '{:0x}'.format(key)[:5]
+            anchor_len = len(self.anchor_keys_for_item_key[key])
+            return (anchor_len, key_str)
+
+        out = (
             '============================================================\n'
-            'acker with {} items\n'
-            '{}\n{}\n\n'
-        ).format(
-            len(self.entry_at_key),
-            self.entry_at_key,
-            dict(self.anchor_keys_for_item_key)
-        )
+            'acker with {} items'
+        ).format(len(self.entry_at_key))
+        #for tup in self.entry_at_key.items():
+        for tup in sorted(self.entry_at_key.items(), key=key_func):
+            key, entry = tup
+            entry_str = '{}\n{}'.format(out, entry.item)
+            anchor_keys = [self.entry_at_key[k].item for k in  self.anchor_keys_for_item_key[key]]
+            out = '{} -> {}'.format(entry_str, anchor_keys)
+        return out
+
+
+
     def __repr__(self):
         return str(self)
 
@@ -71,41 +86,48 @@ class Item:
         self.value = value
         self.key = random.getrandbits(160)
         self.acker = acker
+        self.register(anchor)
 
-    async def register():
-        await self.acker.register(self, anchor)
 
-    async def add_anchor(self, anchor):
-        await self.acker.add_anchor(self, anchor)
+    def register(self, anchor=None):
+        self.acker.register(self, anchor)
 
-    async def ack(self):
+    def add_anchor(self, anchor):
+        self.acker.add_anchor(self, anchor)
+
+    def ack(self):
         if self.value is None:
             raise ValueError('Can only ack items whos value is not None')
-        await self.acker.ack(self)
+        self.acker.ack(self)
 
     def __str__(self):
-        return str((self.value, self.key))
+        return 'Item({}, {})'.format('{:0x}'.format(self.key)[:5], self.value)
+
+    def __repr__(self):
+        return self.__str__()
 
 
 
-#if __name__ == '__main__':
-#    acker = Acker()
-#    print(acker)
-#
-#    i1 = Item(acker, value=1)
-#    print(acker)
-#    i2 = Item(acker, anchor=i1, value=2)
-#    print(acker)
-#
-#    i3 = Item(acker, value=3)
-#    i3.add_anchor(i1)
-#    i3.add_anchor(i2)
-#    print(acker)
-#
-#    i1.ack()
-#    print(acker)
-#    i2.ack()
-#    print(acker)
-#    i3.ack()
-#    print(acker)
+if __name__ == '__main__':
+    acker = Acker()
+    #print(acker)
+
+    i1 = Item(acker, value=1)
+    #print(acker)
+    i2 = Item(acker, anchor=i1, value=2)
+    #print(acker)
+    i3 = Item(acker, anchor=i1, value=3)
+    #print(acker)
+
+    i4 = Item(acker, value=4)
+    i4.add_anchor(i1)
+    i4.add_anchor(i2)
+    print(acker)
+    print('pre_ack')
+
+    for item in [i1, i2, i3, i4][::-1]:
+        item.ack()
+        print(acker)
+        print('acking {}'.format(item))
+
 

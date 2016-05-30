@@ -1,50 +1,227 @@
+import os
+from collections import namedtuple
+import shutil
+import tempfile
 from unittest import TestCase
-import asyncio
+from consecution.nodes import Node
 
-from consecution.nodes import ManualProducerNode, ComputeNode
+class ExplicitWiringTests(TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
 
-class SimpleTest(TestCase):
-    def test_producer(self):
-        producer = ManualProducerNode()
-        computer = ComputeNode(upstream=producer)
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir)
 
-        #async def start_computer():
-        #    computer.start()
+    def do_wiring(self):
+        self.do_explicit_wiring()
+
+    def do_explicit_wiring(self):
+        # define nodes
+        a = Node('a')
+        b = Node('b')
+        c = Node('c')
+        d = Node('d')
+        e = Node('e')
+        f = Node('f')
+        g = Node('g')
+        h = Node('h')
+        i = Node('i')
+        j = Node('j')
+        k = Node('k')
+        l = Node('l')
+        m = Node('m')
+        n = Node('n')
+
+        # save a list of all nodes
+        self.node_list = [a, b, c, d, e, f, g, h, i, j, k, l, m, n]
+        self.top_node = a
+
+        # wire up the nodes
+        a.add_downstream(b)
+        a.add_downstream(c)
+
+        c.add_downstream(d)
+        c.add_downstream(e)
+
+        e.add_downstream(f)
+        e.add_downstream(g)
+        e.add_downstream(h)
+        e.add_downstream(i)
+
+        f.add_downstream(j)
+        g.add_downstream(j)
+        h.add_downstream(j)
+        i.add_downstream(j)
+
+        d.add_downstream(k)
+        j.add_downstream(k)
+
+        b.add_downstream(l)
+        k.add_downstream(l)
+
+        l.add_downstream(m)
+        l.add_downstream(n)
+
+        # same network in graph notation
+        # a | [
+        #    b,
+        #    c | [
+        #            d,
+        #            e  | [f, g, h, i, my_router] | j
+        #    ] | k
+        # ] | l [m, n]
+
+        #a.draw_graph('/tmp/out.png')
+
+    def do_graph_wiring(self):
+        # define nodes
+        a = Node('a')
+        b = Node('b')
+        c = Node('c')
+        d = Node('d')
+        e = Node('e')
+        f = Node('f')
+        g = Node('g')
+        h = Node('h')
+        i = Node('i')
+        j = Node('j')
+        k = Node('k')
+        l = Node('l')
+        m = Node('m')
+        n = Node('n')
+
+        # save a list of all nodes
+        self.node_list = [a, b, c, d, e, f, g, h, i, j, k, l, m, n]
+        self.top_node = a
+
+        # wire up nodes using dsl
+        a | [
+               b,
+               c | [
+                       d,
+                       e  | [f, g, h, i] | j
+                   ] | k
+            ] | l | [m, n]
 
 
-        master = asyncio.gather(
-            asyncio.ensure_future(computer.start()),
-            asyncio.ensure_future(producer.produce_from(range(10))),
-        )
+    def test_connections(self):
+        Conns = namedtuple('Conns', 'node upstreams downstreams')
+        self.do_wiring()
+        n = {
+            node.name: Conns(
+                node.name,
+                {u.name for u in node._upstream_nodes},
+                {d.name for d in node._downstream_nodes}
+            )
+            for node in self.node_list
+        }
+        self.assertEqual(n['a'].upstreams, set())
+        self.assertEqual(n['a'].downstreams, {'b', 'c'})
+
+        self.assertEqual(n['b'].upstreams, {'a'})
+        self.assertEqual(n['b'].downstreams, {'l'})
+
+        self.assertEqual(n['c'].upstreams, {'a'})
+        self.assertEqual(n['c'].downstreams, {'d', 'e'})
+
+        self.assertEqual(n['e'].upstreams, {'c'})
+        self.assertEqual(n['e'].downstreams, {'f','g','h','i'})
+
+        self.assertEqual(n['f'].upstreams, {'e'})
+        self.assertEqual(n['f'].downstreams, {'j'})
+
+        self.assertEqual(n['g'].upstreams, {'e'})
+        self.assertEqual(n['g'].downstreams, {'j'})
+
+        self.assertEqual(n['h'].upstreams, {'e'})
+        self.assertEqual(n['h'].downstreams, {'j'})
+
+        self.assertEqual(n['i'].upstreams, {'e'})
+        self.assertEqual(n['i'].downstreams, {'j'})
+
+        self.assertEqual(n['d'].upstreams, {'c'})
+        self.assertEqual(n['d'].downstreams, {'k'})
+
+        self.assertEqual(n['j'].upstreams, {'f','g','h','i'})
+        self.assertEqual(n['j'].downstreams, {'k'})
+
+        self.assertEqual(n['k'].upstreams, {'j', 'd'})
+        self.assertEqual(n['k'].downstreams, {'l'})
+
+        self.assertEqual(n['l'].upstreams, {'k', 'b'})
+        self.assertEqual(n['l'].downstreams, {'m', 'n'})
+
+    def test_all_nodes(self):
+        self.do_wiring()
+        expected_set = set(self.node_list)
+        all_nodes_set = [
+            set(node.all_nodes) for node in self.node_list
+        ]
+        self.assertTrue(all(
+            [expected_set == found_set for found_set in all_nodes_set]))
+
+    def test_top_node(self):
+        self.do_wiring()
+        top_node_set = {node.top_node for node in self.node_list}
+        self.assertEqual(top_node_set, {self.top_node})
+
+    def test_duplicate_node(self):
+        self.do_wiring()
+
+        # this test is funky in that it has assertion in a loop.
+        # but I wanted to be sure cycles are detected everywhere 
+        for name in [n.name for n in self.top_node.all_nodes]:
+            dup = Node(name)
+            with self.assertRaises(ValueError):
+                self.top_node.add_downstream(dup)
+
+    def test_acyclic(self):
+        self.do_wiring()
+
+        # this test is funky in that it has assertion in a loop.
+        # but I wanted to be sure dups are detected everywhere 
+        for node in self.top_node.all_nodes:
+           with self.assertRaises(ValueError):
+                node.add_downstream(self.top_node)
+
+    def test_multi_root(self):
+        self.do_wiring()
+        other_root = Node('dual_root')
+        other_root.add_downstream(self.top_node._downstream_nodes[0])
+
+        with self.assertRaises(ValueError):
+            other_root.top_node
+
+    def test_non_node_connect(self):
+        node = Node('a')
+        other = 'not a node'
+        with self.assertRaises(ValueError):
+            node.add_downstream(other)
+
+    def test_write(self):
+        self.do_wiring()
+        out_file = os.path.join(self.temp_dir, 'out.png')
+        self.top_node.draw_graph(out_file)
+        #uncomment the next line if you want to look at the graph
+        os.system('cp {} /tmp'.format(out_file))
 
 
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(master)
-        print()
-        print('done')
-    #def test_nothing(self):
-    #    async def runner():
-    #        print('hello')
-
-    #    #loop = asyncio.new_event_loop()
-    #    loop = asyncio.get_event_loop()
-    #    loop.run_until_complete(runner())
-
-    #def test_nothing2(self):
-    #    async def dummy():
-    #        print('starting sleep 2')
-    #        await asyncio.sleep(1)
-    #        print('finishing sleep 2')
-    #    print()
-    #    print('testing nothing 2')
-    #    print('done testing 2')
-
-    #    #loop = asyncio.new_event_loop()
-    #    loop = asyncio.get_event_loop()
-    #    loop.run_until_complete(dummy())
+class DSLWiringTests(ExplicitWiringTests):
+    def do_wiring(self):
+        self.do_graph_wiring()
 
 
-    #loop = asyncio.get_event_loop()
-    #loop.run_until_complete(main())
-    #loop.close()
+#class DuplicateTests(TestCase):
+#    def test_duplicate_node(self):
+#        a = Node('a')
+#        b = Node('b')
+#        c = Node('a')
+#
+#        with self.assertRaises(ValueError):
+#            a | b | c
+
+
+
+
+
 
