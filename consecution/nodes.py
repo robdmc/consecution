@@ -1,3 +1,4 @@
+import hashlib
 from itertools import product
 
 class Node(object):
@@ -21,7 +22,23 @@ class Node(object):
         """
         define __hash__ method. dicts and sets will use this as key
         """
-        return hash(id(self))
+        h = hashlib.sha1()
+        h.update(self.name)
+        out = int(h.hexdigest(), 16)
+        out = out % (2 ** (8*4))
+        return out
+
+    def __eq__(self, other):
+        return self.__hash__() == other.__hash__()
+
+    def __getitem__(self, key):
+        msg = (
+            '\n\nYou cannot call __getitem__ on nodes.  You tried to call\n'
+            '{self} [{key}]\n'
+            'which doesn\'t make sense.  You probably meant\n'
+            '{self} | [{key}]\n'
+        ).format(self=self, key=key)
+        raise ValueError(msg)
 
     def _get_flattened_list(self, obj):
         if isinstance(obj, Node):
@@ -111,10 +128,6 @@ class Node(object):
     def all_nodes(self):
         return self.depth_first_search('both')
 
-    OKAY.  AT THIS POINT, I THINK THE WIRING IS WORKING PROPERLY.  I NEED TO
-    LOOK BACK THROUGH THIS CODE AND MAKE SURE I'M CHECKING FOR CYCLES AS
-    NODES ARE ADDED.  I HAD THIS AT ONE POINT, BUT IT MAY HAVE GOTTEN STRIPPED
-    OUT
 
     def depth_first_search(self, direction='both'):
         """
@@ -160,16 +173,31 @@ class Node(object):
         return visited_nodes
 
     def _validate_node(self, other):
+        THIS IS NOT WORKING PROPERLY
+        I WANT IT TO DETECT CYCLES AND DUPS
+        MAYBE I SHOULD SPLIT THIS INTO TO METHODS.
         # only nodes allowed to be connected
         if not isinstance(other, Node):
             raise ValueError('Trying to connect a non-node type')
 
-        # a duplicate is a node with same name, but different hash
-        hash_for_name = {n.name: hash(n) for n in self.all_nodes}
-        if other.name in hash_for_name:
-            if hash(other) != hash_for_name[other.name]:
-                raise ValueError('A Node nameed \'{}\' already exists'.format(
-                    other.name))
+        upstreams = self.depth_first_search('bo')
+        downstreams = other.depth_first_search('down')
+
+        if self.name == 'a':
+            print
+            print 'self', self
+            print 'upstreams', upstreams
+            print 'downstreams', downstreams
+
+        common_nodes = upstreams.intersection(downstreams)
+        if common_nodes:
+            if common_nodes != upstreams:
+                msg = (
+                    '\n\nNode names must be unique.  Dupicates {} found.'
+                ).format(list(common_nodes))
+                raise ValueError(msg)
+            else:
+                raise ValueError('\n\nYour graph is not acyclic.\n')
 
     def add_downstream(self, other):
         self._validate_node(other)

@@ -168,6 +168,16 @@ class ExplicitWiringTests(TestCase):
     def test_duplicate_node(self):
         self.do_wiring()
         dup = Node('c')
+
+
+
+
+        self.top_node.add_downstream(dup)
+
+        dup.top_node.draw_graph('graph.png')
+        return
+
+
         with self.assertRaises(ValueError):
             self.top_node.add_downstream(dup)
 
@@ -198,24 +208,24 @@ class DSLWiringTests(ExplicitWiringTests):
         self.do_graph_wiring()
 
 
-#  THIS IS A COMPLICATED TEST TOPOLOGY I MIGHT WANT TO USE
-# pre = Pass('pre')
-# a = Pass('a')
-# b = Pass('b')
-# c = Pass('c')
-# d = Pass('d')
-# e = Pass('e')
-# f = Pass('f')
-# g = Pass('g')
-# h = Pass('h')
-# i = Pass('i')
-# j = Pass('j')
-# k = Pass('k')
-# m = Printer('m')
-# producer | a | [
-#     b,
-#     c | [
-#             d,
-#             e  | [f, g, h, k, my_router] | i
-#     ] | j
-# ] | m
+class DuplicateTests(TestCase):
+    def test_duplicate_node(self):
+        a = Node('a')
+        b = Node('b')
+        c = Node('a')
+
+        with self.assertRaises(ValueError):
+            a | b | c
+
+    def test_acyclic(self):
+        a = Node('a')
+        b = Node('b')
+        c = Node('c')
+
+        with self.assertRaises(ValueError):
+            a | b | a
+
+
+
+
+
