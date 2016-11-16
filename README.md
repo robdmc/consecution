@@ -39,17 +39,18 @@ What is Consecution?
 
 Installation
 ---
-Consecution is simple to install
+Consecution is simple to install with pip.
 
-BORROWED FROM PANDASHELLS FOR NOW.  WILL FIX THIS UP LATER
-####Pandashells console tools
-Use this option to install Pandashells and only the console tools dependencies. This
-will not install the graphics dependencies (matplotlib and friends)
-<pre><code><strong>[~]$ pip install pandashells[console]</strong></code></pre>
+####Base Installation (no dependencies required)
+This will create a fully functional installation of consecution that will  be limited
+text-only pipeline visualization in the console.
+<pre><code><strong>[~]$ pip install consecution</strong></code></pre>
 
-####Pandashells full install
-Use this option to install Pandashells and all dependencies
-<pre><code><strong>[~]$ pip install pandashells[full]</strong></code></pre>
+####Installation with Pipeline Visualization
+You must have <a href="http://www.graphviz.org/">Graphviz</a> already installed on your system
+to install consecution with the following option.  You will then be able to create nice pipeline
+visualizations.
+<pre><code><strong>[~]$ pip install consecution[full]</strong></code></pre>
 
 Overview
 ---

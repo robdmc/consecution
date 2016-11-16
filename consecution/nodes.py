@@ -1,17 +1,39 @@
-from collections import Counter
+import sys
+from collections import Counter, deque, OrderedDict
 import hashlib
 from itertools import product
+import traceback
+from consecution.utils import Clock
+
+#TODO:  Make sure you don't allow calling .push from within a .begin method
+#       I think I handled this in the Ambition version of Node.
 
 class Node(object):
-    def __init__(self, name):
+    def __init__(self, name, **kwargs):
+        # assign any user-defined attributes
+        for k, v in kwargs.items():
+            setattr(self, k, v)
         self.name = name
         self._upstream_nodes = []
         self._downstream_nodes = []
+
+        # this flag will be set when this node and all its upstreams are
+        # done processing
+        #self._all_upstreams_complete = False
+        self._num_top_down_calls = 0
 
         # node network can be visualized with pydot.  These hold args and kwargs
         # that will be used to add and connect this node in the graph visualization
         self._pydot_node_kwargs = dict(name=self.name, shape='rectangle')
         self._pydot_edge_kwarg_list = []
+
+        self._router = None
+
+        # this will be one of three values: None, 'input', 'output'
+        self._logging = None
+
+        # add a clock to allow for timing
+        self.clock = Clock()
 
     def __str__(self):
         return 'N({})'.format(self.name)
@@ -24,12 +46,6 @@ class Node(object):
         define __hash__ method. dicts and sets will use this as key
         """
         return id(self)
-
-        #h = hashlib.sha1()
-        #h.update(self.name)
-        #out = int(h.hexdigest(), 16)
-        #out = out % (2 ** (8*4))
-        #return out
 
     def __eq__(self, other):
         return self.__hash__() == other.__hash__()
@@ -70,15 +86,42 @@ class Node(object):
                 raise ValueError('pointing must be "left" or "right"')
         return nodes
 
-
-    def _connect_lefts_to_rights(self, lefts, rights):
+    def _connect_lefts_to_rights(self, lefts, rights, router=None):
         slots_from_left = self._get_exposed_slots(lefts, pointing='right')
         slots_from_right = self._get_exposed_slots(rights, pointing='left')
-        for left, right in product(slots_from_left, slots_from_right):
-            left.add_downstream(right)
+        for left in slots_from_left:
+            router_node = None
+            if router:
+                router_name = '{}.{}'.format(
+                    left.name, self._get_object_name(router))
+                end_point_map = {n.name: n for n in slots_from_right}
+                router_node = _RouterNode(
+                    router_name, end_point_map, router)
+                left.add_downstream(router_node)
+            for right in slots_from_right:
+                if router_node:
+                    router_node.add_downstream(right)
+                else:
+                    left.add_downstream(right)
+
+    def _get_object_name(self, obj):
+        class_name = obj.__class__.__name__
+        if class_name == 'function':
+            return obj.__name__
+        else:
+            return class_name
+
+    def _get_router(self, obj):
+        router = None
+        if hasattr(obj, '__iter__'):
+            routers = [el for el in obj if hasattr(el, '__call__')]
+            router = routers[0] if routers else None
+        return router
+
 
     def __or__(self, other):
-        self._connect_lefts_to_rights(self, other)
+        router = self._get_router(other)
+        self._connect_lefts_to_rights(self, other, router)
         return self
 
     def __ror__(self, other):
@@ -134,29 +177,144 @@ class Node(object):
     def all_nodes(self):
         return self.depth_first_search('both')
 
-    def depth_first_search(self, direction='both'):
+    def log(self, what):
+        allowed = ['input', 'output']
+        if what not in allowed:
+            raise ValueError(
+                '\'what\' argument must be in {}'.format(allowed)
+            )
+        self._logging = what
+
+    def _get_downstream_reps(self):
+        if self._downstream_nodes:
+            downstreams = sorted([n.name for n in self._downstream_nodes])
+
+            if len(downstreams) == 1:
+                downstreams = downstreams[0]
+
+            template = '{{: >{}s}} | {{}}\n'.format(
+                self.pipeline._longest_node_name_len_)
+
+            self.pipeline._node_repr += template.format(
+                self.name, downstreams).replace(
+                    '\'', ''
+                )
+
+    def top_down_make_repr(self):
+        if not hasattr(self, 'pipeline'):
+            raise ValueError(
+                'top_down_print can only be called for nodes in a pipeline')
+
+        self.pipeline._longest_node_name_len_ = max(
+            len(n.name) for n in self.all_nodes)
+        self.pipeline._node_repr = ''
+        self.top_node.top_down_call('_get_downstream_reps')
+
+    #def top_down_call_orig(self, method_name):
+    #    """
+    #    This recursively calls a method on self and all downstreams. It is used
+    #    to make sure begin() and end() are not called before all their
+    #    upstream counterparts.
+    #    """
+    #    # search all upstreams for incomplete nodes.  If you find one,
+    #    # you're done
+    #    for upstream in self._upstream_nodes:
+    #        if not upstream._all_upstreams_complete:
+    #            return
+    #    # if you get here, that means all upstreams are complete
+    #    # so call the method and mark yourself as complete
+    #    getattr(self, method_name)()
+    #    self._all_upstreams_complete = True
+
+    #    # now run recursive call on all your downstreams
+    #    for downstream in self._downstream_nodes:
+    #        downstream.top_down_call(method_name)
+
+    def top_down_call(self, method_name):
+        """
+        This recursively calls a method on self and all downstreams. It is used
+        to make sure begin() and end() are not called before all their
+        upstream counterparts.
+        """
+        # record the number of upstreams this node has
+        num_upstreams = len(self._upstream_nodes)
+
+        # if this node isn't pulling from multiple upstreams, it's ready
+        # to recurse to downstreams
+        if num_upstreams <= 1:
+            ready_for_downstreams = True
+        # this node isn't ready to recurse to downstreams until the current
+        # call would mean the last required call.
+        elif self._num_top_down_calls == num_upstreams - 1:
+            ready_for_downstreams = True
+        else:
+            ready_for_downstreams = False
+
+        # if ready to recurse, then call the method on self and recurse
+        # downwards.
+        if ready_for_downstreams:
+            getattr(self, method_name)()
+            for downstream in self._downstream_nodes:
+                downstream.top_down_call(method_name)
+            self._num_top_down_calls = 0
+        else:
+            self._num_top_down_calls += 1
+
+    def depth_first_search(self, direction='both', as_ordered_list=False):
         """
         This is a depth first search using a stack to emulate recursion
         see good explanation at
         https://jeremykun.com/2013/01/22/depth-and-breadth-first-search/
         """
-        # holds all nodes that have been visited
-        visited_nodes = set()
+        return self.search(
+            direction=direction, how='depth_first',
+            as_ordered_list=as_ordered_list)
+
+    def breadth_first_search(self, direction='both', as_ordered_list=False):
+        """
+        This is a depth first search using a stack to emulate recursion
+        see good explanation at
+        https://jeremykun.com/2013/01/22/depth-and-breadth-first-search/
+        """
+        return self.search(
+            direction=direction, how='breadth_first',
+            as_ordered_list=as_ordered_list)
+
+    def search(
+            self, direction='both', how='breadth_first', as_ordered_list=False,
+            ):
+
+        """
+        This is a depth first search using a stack to emulate recursion
+        see good explanation at
+        https://jeremykun.com/2013/01/22/depth-and-breadth-first-search/
+        """
+        if how not in {'depth_first', 'breadth_first'}:
+            raise ValueError(
+                '\'how\' argument must be one of '
+                '[\'depth_first\', \'breadth_first\']'
+            )
+        # What I really want is an ordered set, which doesn't exist.  So I'm 
+        # using the keys of an ordered dict to get the functionality I want.
+        # I have no need for the values in this dict, only the keys.
+        visited_nodes = OrderedDict()
 
         # holds nodes that still need to be explored
-        stack = [self]
+        queue = deque([self])
 
         # while I still have nodes that need exploring
-        while len(stack) > 0:
+        while len(queue) > 0:
             # get the next node to explore
-            node = stack.pop()
+            node = queue.pop()
 
             # if I've already seen this node, nothing to do, so go to next
             if node in visited_nodes:
                 continue
 
             # Make sure I don't visit this node again
-            visited_nodes.add(node)
+            # again.  I'm using an ordered dict to mimic an ordered set.
+            # I have no need for the value, so set it to None
+            visited_nodes[node] = None
 
             if direction == 'up':
                 neighbors = node._upstream_nodes
@@ -172,10 +330,16 @@ class Node(object):
             for node in neighbors:
                 # if you find unvisited node, add it to nodes needing visit
                 if node not in visited_nodes:
-                    stack.append(node)
+                    if how == 'breadth_first':
+                        queue.appendleft(node)
+                    else:
+                        queue.append(node)
 
         # should have hit all nodes in the graph at this point
-        return visited_nodes
+        if as_ordered_list:
+            return list(visited_nodes.keys())
+        else:
+            return set(visited_nodes.keys())
 
     def _check_for_dups(self):
         counter = Counter()
@@ -243,8 +407,8 @@ class Node(object):
 
         return graph
 
-    def draw_graph(
-            self, file_name='pipeline', kind='png', display_noteook=False):  # pragma: no cover  (see above for why)
+    def plot(
+            self, file_name='pipeline', kind='png', notebook=False):  # pragma: no cover  (see above for why)
         """
         This method draws a pydot graph of your processing tree.  It does so using the
         pydot library which is based on the graphviz library.  You should only ever need
@@ -261,7 +425,7 @@ class Node(object):
 
         file_name: [str] the name of the visualization file
         kind: [str] the type of visualization file to create
-        display_notebook: [bool]  Automatically load up the visualization in IPython Notebook
+        notebook: [bool]  Automatically load up the visualization in IPython Notebook
         """
         graph = self._build_pydot_graph()
 
@@ -282,206 +446,147 @@ class Node(object):
             graph.write_png(file_name)
 
         # display to notebook if requested
-        if display_noteook:
+        if notebook:
             # do import here because IPython not core dependancy
             from IPython.display import Image, display
             graph.write_png(file_name)
             display(Image(filename=file_name))
 
+    def process(self, item):
+        raise NotImplementedError(
+            (
+                'Error in node named {}\n'
+                'You must define a .process(self, item) method on all nodes'
+            ).format(repr(self.name))
+        )
+
+    def _logged_process(self, item):
+        if self._logging == 'input':
+            self._write_log(item)
+        self.process(item)
+
+    def _begin(self):
+        try:
+            self.begin()
+        except AttributeError, e:
+            tb = sys.exc_info()[2]
+            (
+                code_file, line_no, method_name, line_txt
+            ) = traceback.extract_tb(tb)[-1]
+            msg = str(e) + (
+                '\n\nError in .begin() method of \'{}\' node.\n'
+                'Are you trying to call .push() from inside the\n'
+                '.begin() method?  That is not allowed.\n\n'
+                'file: {}, line{}\n--> {}\n\n'
+            ).format(self.name, code_file, line_no, line_txt)
+            traceback.print_exc()
+            raise AttributeError(msg)
+
+
+    def begin(self):
+        pass
+
+    def end(self):
+        pass
+
+    def _write_log(self, item):
+        sys.stdout.write('node_log,{},{},{}\n'.format(self._logging, self.name, item))
+
+    def _push(self, item):
+        """
+        This is the default pusher.  It pushes to all downstreams.
+        """
+        if self._logging == 'output':
+            self._write_log(item)
+
+        # The _process attribute will be set to the appropriate callable
+        # when initializing the pipeline.  I do this because I want the
+        # chaining to be as efficient as possible.  If logging is not set,
+        # I don't want to have to hit that logic every push, so I just
+        # invoke a callable attribute at each process that has been set
+        # to the appropriate callable.
+        for downstream in self._downstream_nodes:
+            downstream._process(item)
 
 
 
-    #def _validate_or_operator_args(self, other):
-    #    # define a default error message
-    #    default_msg = (
-    #        '\n\nError connecting {} to {}.\n'
-    #        'Only nodes or list of nodes or callables are allowed.'
-    #    ).format(self, other)
+class _RouterNode(Node):
+    """
+    This node will route to downstreams.  The router function needs to
+    return the name of the destination node.
+    """
+    def __init__(self, name, end_point_map, route_callable):
+        super(_RouterNode, self).__init__(name)
+        self._end_point_map = end_point_map
+        self._pydot_node_kwargs = dict(name=self.name, shape='oval')
+        self._route_callable = route_callable
 
-    #    # nodes are okay
-    #    if isinstance(other, Node):
-    #        return
+    def process(self, item):
+        """
+        This is the default pusher.  It pushes to all downstreams.
+        """
+        node = self._end_point_map.get(self._route_callable(item), None)
+        if node is None:
+            raise ValueError(
+                (
+                    '\n\nRouter node {} encountered bad route path {}.  Valid '
+                    'route paths are {}.'
+                ).format(
+                    self.name,
+                    repr(self._route_callable(item)),
+                    [n.name for n in self._downstream_nodes]
+                )
+            )
 
-    #    # make sure input lists are valid
-    #    if isinstance(other, list):
-    #        # count the number of elements of each type
-    #        num_callables, num_bad_kinds = 0, 0
-    #        for el in other:
-    #            if hasattr(el, '__call__'):
-    #                num_callables += 1
-    #            elif not isinstance(el, Node):
-    #                num_bad_kinds += 1
+        if self._logging == 'output':
+            self._write_log(item)
 
-    #        if num_bad_kinds > 0:
-    #            raise ValueError(default_msg)
-
-    #        if num_callables > 1:
-    #            msg = (
-    #                '\n\nError connecting {} to {}.\n'
-    #                'Mutliple routing functions found.'
-    #            ).format(self, other)
-
-    #    # everything but a node or a list is an error
-    #    else:
-    #        raise ValueError(default_msg)
-
-    #@staticmethod
-    #def flatten(other):
-    #    out = []
-    #    if isinstance(other, list):
-    #        for el in other:
-    #            if isinstance(el, list):
-    #                out.extend(el)
-    #            else:
-    #                out.append(el)
-    #    return out
+        node._process(item)
 
 
-    #def __or__(self, other):
-    #    # make sure arguments are valid
-    #    other = self.flatten(other)
-    #    self._validate_or_operator_args(other)
+class GroupByNode(Node):
+    def __init__(self, *args, **kwargs):
+        super(GroupByNode, self).__init__(*args, **kwargs)
+        self._batch_ = []
+        self._previous_key = '__no_previous_key__'
 
+    def key(self, item):
+        raise NotImplementedError(
+            'you must define a .key(self, item) method on all '
+            'GroupBy nodes.'
+        )
 
+    def process(self, batch):
+        raise NotImplementedError(
+            'You must define a .process(self, batch) method on all GroupBy '
+            'nodes.'
+        )
 
-    #    # convert all input to list form
-    #    if isinstance(other, Node):
-    #        other = list(other.initial_node_set)
+    def _process_item(self, item):
+        key = self.key(item)
+        if key != self._previous_key:
+            self._previous_key = key
+            if len(self._batch_) > 0:
+                self.process(self._batch_)
+            self._batch_ = [item]
+        else:
+            self._batch_.append(item)
 
-    #    ## need to snapshot current terminal set for returning later
-    #    #terminal_node_set = self.terminal_node_set
+    def _end(self):
+        self.process(self._batch_)
+        self._batch_ = []
 
-    #    # separate node elements from routing function elements
-    #    downstream_nodes = [
-    #        el for el in other if isinstance(el, Node)]
-    #    routers = [
-    #        el for el in other if hasattr(el, '__call__')]
+    def __getattribute__(self, name):
+        """
+        This should trap for the end() method calls and install
+        pre hook.
+        """
+        if name == 'end':
+            def wrapper():
+                self._end()
+                return super(GroupByNode, self).__getattribute__(name)()
+            return wrapper
+        else:
+            return super(GroupByNode, self).__getattribute__(name)
 
-    #    if routers:
-    #        raise NotImplementedError('need to write this logic')
-    #    else:
-    #        self.connect_outputs(*downstream_nodes)
-
-    #    out = list(self.terminal_node_set)
-
-    #    # this is a useful debug line.  Don't delete it
-    #    print('or {} | {} --> {}:   init={}  term={}'.format(
-    #        self, other, out,
-    #        out[0].initial_node_set, out[0].terminal_node_set))
-
-    #    #return out[0] if len(out) == 1 else out
-    #    print '*** out = ', out
-    #    return out
-
-
-
-
-    #    #if routers:
-    #    #    raise NotImplementedError('Need to finish routing code')
-    #    #else:
-    #    #    for downstream_node in downstream_nodes:
-    #    #        self.add_downstream(downstream_node)
-
-    #    #out = list(self.terminal_node_set)
-    #    #return out[0] if len(out) == 1 else out
-
-    #def __ror__(self, other):
-    #    """
-    #    """
-    #    if isinstance(other, Node):
-    #        other = list(other.terminal_node_set)
-
-    #    #print '__ror__'
-    #    #print 'self', self
-    #    #print 'other', other
-
-    #    self.connect_inputs(*other)
-    #    out = list(self.terminal_node_set)
-
-    #    # this is a useful debug line.  Don't delete it
-    #    print('ror {} | {} --> {}:   init={}  term={}'.format(
-    #        other, self, out,
-    #        out[0].initial_node_set, out[0].terminal_node_set))
-    #    print '*** out = ', out
-
-    #    return out[0] if len(out) == 1 else out
-
-    #def validate_inputs(self, upstreams):
-    #    if len(upstreams) == 0:
-    #        msg = (
-    #            'Error connecting {} to {}.\n'
-    #            'There must be at least one node to connect to.'
-    #        ).format(upstreams, self)
-    #        raise ValueError(msg)
-
-    #    if len(self.initial_node_set) > 1 and len(upstreams) > 1:
-    #        msg = (
-    #            'Error connecting {} to {}.\n'
-    #            'Many-to-many connections are not permitted'
-    #        ).format(upstreams, self)
-    #        raise ValueError(msg)
-    #    #TODO:  Need to bring this over
-    #    #self._detect_cycles(upstreams, self.downstream_set)
-
-    #def connect_inputs(self, *upstreams):
-    #    """
-    #    Logic for connecting sub-graphs
-    #    """
-    #    self.validate_inputs(upstreams)
-
-    #    # need to use snapshot of initial_node_set because loop updates it
-    #    initial_node_set = self.initial_node_set
-
-    #    for upstream in upstreams:
-    #        for input_node in initial_node_set:
-    #            upstream.add_downstream(input_node)
-
-    #def validate_outputs(self, downstreams):
-    #    if len(downstreams) == 0:
-    #        msg = (
-    #            'Error connecting {} to {}.\n'
-    #            'There must be at least one node to connect to.'
-    #        ).format(self, downstreams)
-    #        raise ValueError(msg)
-
-    #    if len(self.terminal_node_set) > 1 and len(downstreams) > 1:
-    #        msg = (
-    #            'Error connecting {} to {}.\n'
-    #            'Many-to-many connections are not permitted'
-    #        ).format(self, downstreams)
-    #        raise ValueError(msg)
-    #    #TODO bring this over too
-    #    #self._detect_cycles(self.upstream_set, downstreams)
-
-    #def connect_outputs(self, *downstreams):
-    #    downstreams = list(downstreams)
-    #    self.validate_outputs(downstreams)
-    #    terminal_node_set = self.terminal_node_set
-    #    for term_node in terminal_node_set:
-    #        for downstream in downstreams:
-    #            term_node.add_downstream(downstream)
-
-    #def _detect_cycles(self, upstreams, downstreams):
-    #    downstream_set = set()
-    #    upstream_set = set()
-
-    #    for downstream in downstreams:
-    #        downstream_set = downstream_set.union(
-    #            set(downstream.depth_first_search('down'))
-    #        )
-
-    #    for upstream in upstreams:
-    #        upstream_set = upstream_set.union(
-    #            set(upstream.depth_first_search('up'))
-    #        )
-
-
-    #    common_nodes = downstream_set.intersection(upstream_set)
-
-    #    if common_nodes:
-    #        msg = (
-    #            '\n\nLoop detected in pipeline graph.'
-    #            '  Node(s) {} encountered twice.'
-    #        ).format(common_nodes)
-    #        raise ValueError(msg)
 

@@ -1,4 +1,5 @@
 import os
+import sys
 from collections import namedtuple
 import shutil
 import tempfile
@@ -71,7 +72,6 @@ class ExplicitWiringTests(TestCase):
         #    ] | k
         # ] | l [m, n]
 
-        #a.draw_graph('/tmp/out.png')
 
     def do_graph_wiring(self):
         # define nodes
@@ -201,7 +201,7 @@ class ExplicitWiringTests(TestCase):
     def test_write(self):
         self.do_wiring()
         out_file = os.path.join(self.temp_dir, 'out.png')
-        self.top_node.draw_graph(out_file)
+        self.top_node.plot(out_file)
         #uncomment the next line if you want to look at the graph
         os.system('cp {} /tmp'.format(out_file))
 
@@ -210,16 +210,201 @@ class DSLWiringTests(ExplicitWiringTests):
     def do_wiring(self):
         self.do_graph_wiring()
 
+class TopDownCallTests(TestCase):
+    def test_call_order_okay(self):
 
-#class DuplicateTests(TestCase):
-#    def test_duplicate_node(self):
-#        a = Node('a')
-#        b = Node('b')
-#        c = Node('a')
-#
-#        with self.assertRaises(ValueError):
-#            a | b | c
+        # a toy class that holds a class variable
+        # tracking what order objects get called in
+        class MyNode(Node):
+            call_list = []
+            def end(self):
+                self.__class__.call_list.append(self)
 
+        a = MyNode('a')
+        b = MyNode('b')
+        c = MyNode('c')
+        d = MyNode('d')
+        e = MyNode('e')
+        f = MyNode('f')
+        g = MyNode('g')
+
+        a | [
+            b | c,
+            d | e | f
+        ] |  g
+        a.top_node.top_down_call('end')
+
+        # make a dictionary with order in which nodes
+        # were called
+        call_number = {
+            node: ind for (ind, node) in enumerate(a.__class__.call_list)}
+
+        # make sure ording of one branch is right
+        self.assertTrue(call_number[a] < call_number[b])
+        self.assertTrue(call_number[b] < call_number[c])
+        self.assertTrue(call_number[c] < call_number[g])
+
+        # make sure ordering of other branch is okay
+        self.assertTrue(call_number[a] < call_number[d])
+        self.assertTrue(call_number[d] < call_number[e])
+        self.assertTrue(call_number[e] < call_number[f])
+        self.assertTrue(call_number[f] < call_number[g])
+
+
+class BreadthFirstSearchTests(TestCase):
+    def test_top_down_order(self):
+        a = Node('a')
+        b = Node('b')
+        c = Node('c')
+        d = Node('d')
+        e = Node('e')
+        f = Node('f')
+        g = Node('g')
+        h = Node('h')
+        i = Node('i')
+
+        def silly_router(item):
+            return 0
+
+        a | [b, c] | [d, e, f, silly_router] | [h, i]
+        nodes =  a.top_node.breadth_first_search(
+            direction='down', as_ordered_list=True)
+        level5 = {nodes.pop() for nn in range(2)}
+        level4 = {nodes.pop() for nn in range(3)}
+        level3 = {nodes.pop() for nn in range(2)}
+        level2 = {nodes.pop() for nn in range(2)}
+        level1 = {nodes.pop() for nn in range(1)}
+
+        self.assertEqual(level1, {a})
+        self.assertEqual(level2, {b, c})
+        self.assertEqual(len(level3), 2)
+        self.assertEqual(level4, {d, e, f})
+        self.assertEqual(level5, {h, i})
+
+    def test_bottom_up_order(self):
+        a = Node('a')
+        b = Node('b')
+        c = Node('c')
+        d = Node('d')
+        e = Node('e')
+        f = Node('f')
+        g = Node('g')
+        h = Node('h')
+
+        def silly_router(item):
+            return 0
+
+        a | [b, c] | [d, e, f, silly_router] | h
+        nodes =  h.breadth_first_search(direction='up', as_ordered_list=True)
+        nodes = nodes[::-1]
+        level5 = {nodes.pop() for nn in range(1)}
+        level4 = {nodes.pop() for nn in range(3)}
+        level3 = {nodes.pop() for nn in range(2)}
+        level2 = {nodes.pop() for nn in range(2)}
+        level1 = {nodes.pop() for nn in range(1)}
+
+        self.assertEqual(level1, {a})
+        self.assertEqual(level2, {b, c})
+        self.assertEqual(len(level3), 2)
+        self.assertEqual(level4, {d, e, f})
+        self.assertEqual(level5, {h})
+
+class PrintingTests(TestCase):
+    def setUp(self):
+        # define nodes
+        a = Node('a')
+        b = Node('b')
+        c = Node('c')
+        d = Node('d')
+        e = Node('e')
+        f = Node('f')
+        g = Node('g')
+        h = Node('h')
+        i = Node('i')
+        j = Node('j')
+        k = Node('k')
+        l = Node('l')
+        m = Node('m')
+        n = Node('n')
+
+        class DummyPipeline(object):
+            pass
+
+        pipeline = DummyPipeline()
+
+        # save a list of all nodes
+        self.node_list = [a, b, c, d, e, f, g, h, i, j, k, l, m, n]
+        self.top_node = a
+
+        def my_router(item):
+            return 'm'
+
+        # wire up nodes using dsl
+        a | [
+               b,
+               c | [
+                       d,
+                       e  | [f, g, h, i] | j
+                   ] | k
+            ] | l | [m, n, my_router]
+
+        for node in self.top_node.all_nodes:
+            node.pipeline = pipeline
+
+    def test_nothing(self):
+        self.top_node.top_down_make_repr()
+        lines = sorted([
+            line.strip()
+            for line in self.top_node.pipeline._node_repr.split('\n')
+            if line.strip()
+        ])
+        expected_lines = sorted([
+            'a | [b, c]',
+            'b | l',
+            'c | [d, e]',
+            'd | k',
+            'e | [f, g, h, i]',
+            'f | j',
+            'g | j',
+            'h | j',
+            'i | j',
+            'j | k',
+            'k | l',
+            'l | l.my_router',
+            'l.my_router | [m, n]',
+        ])
+        self.assertEqual(lines, expected_lines)
+
+
+
+
+class RoutingTests(TestCase):
+    def test_nothing(self):
+        a = Node('a')
+        b = Node('b')
+        c = Node('c')
+        d = Node('d')
+        e = Node('e')
+        f = Node('f')
+        g = Node('g')
+        h = Node('h')
+        i = Node('i')
+        j = Node('j')
+        k = Node('k')
+        m = Node('m')
+        bb = Node('bb')
+        ee = Node('ee')
+
+        def silly_router(item):
+            return 0
+
+        class ClassRouter(object):
+            def __call__(self, arg):
+                return arg
+
+        #a | [b, c, ClassRouter()] |d 
+        a | [b, c, ClassRouter()] |[d, e, silly_router]
+        #a.plot()
 
 
 
