@@ -402,11 +402,4 @@ class RoutingTests(TestCase):
             def __call__(self, arg):
                 return arg
 
-        #a | [b, c, ClassRouter()] |d 
         a | [b, c, ClassRouter()] |[d, e, silly_router]
-        #a.plot()
-
-
-
-
-

@@ -118,19 +118,25 @@ class Pipeline(object):
         # this will automatically raise error if the name doesn't exist
         node_to_replace = self[name_to_replace]
 
-        # loop over all upstreams of node to replace
-        for upstream in node_to_replace._upstream_nodes:
-            # remove the node-to-replace from downstream list of upstream node
-            self._pop_node_name(name_to_replace, upstream._downstream_nodes)
-            # insert the replacement downstream
-            upstream.add_downstream(replacement_node)
+        removals = []
+        additions = []
 
-        # loop over all downstreams of the node to replace
+        for upstream in node_to_replace._upstream_nodes:
+            removals.append((upstream, node_to_replace))
+            additions.append((upstream, replacement_node))
+            # handle special case of upstream being a routing node
+            if hasattr(upstream, '_end_point_map'):
+                upstream._end_point_map[name_to_replace] = replacement_node
+
         for downstream in node_to_replace._downstream_nodes:
-            # remove node-to-replace from upstreams of downstream node
-            self._pop_node_name(name_to_replace, downstream._upstream_nodes)
-            # insert replacement into upstream-list of replacement node
-            replacement_node.add_downstream(downstream)
+            removals.append((node_to_replace, downstream))
+            additions.append((replacement_node, downstream))
+
+        for upstream, downstream in removals:
+            upstream.remove_downstream(downstream)
+
+        for upstream, downstream in additions:
+            upstream.add_downstream(downstream)
 
         # initialize the replacement node within the pipeline
         self.initialize_node(replacement_node)

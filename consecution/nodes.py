@@ -376,6 +376,23 @@ class Node(object):
         self._pydot_edge_kwarg_list.append(
             dict(src=self.name, dst=other.name, dir='forward'))
 
+    def remove_downstream(self, other):
+        # remove self from the other's upstreams
+        other._upstream_nodes = [
+            n for n in other._upstream_nodes if n.name != self.name]
+
+        # remove other from self's downstream nodes
+        self._downstream_nodes = [
+            n for n in self._downstream_nodes if n.name != other.name]
+
+        # remove this connection from the pydot kwargs list
+        new_kwargs_list = []
+        for kwargs in self._pydot_edge_kwarg_list:
+            if kwargs['src'] == self.name and kwargs['dst'] == other.name:
+                continue
+            new_kwargs_list.append(kwargs)
+        self._pydot_edge_kwarg_list = new_kwargs_list
+
     def _build_pydot_graph(self):
         """
         This private method builds a pydot graph

@@ -127,6 +127,23 @@ class ReplacementTests(TestBase):
         self.assertEqual(printer.txt.count('10'), 1)
         self.assertEqual(printer.txt.count('20'), 1)
 
+    def test_replace_even(self):
+        class Replacement(Node):
+            def process(self, item):
+                self.push(
+                    Item(value=10 * item.value, parent=item, source=self.name)
+                )
+
+        self.pipeline['even'] = Replacement('even')
+        self.pipeline['g'].log('output')
+
+        printer = Printer()
+        sys.stdout = printer
+        self.pipeline.consume(item_generator())
+        sys.stdout = sys.__stdout__
+        self.assertEqual(printer.txt.count('1'), 2)
+        self.assertEqual(printer.txt.count('20'), 2)
+
         #IVE GOT REPLACEMENT CODE WRITTEN, BUT IM ONLY HALF WAY DONE TESTING IT.
         #RIGHT NOW I HAVE THE FIRST NODE TESTED.  WHAT I NEED TO DO NEXT IS TEST
         #MAYBE JUST THE EVEN SIDE OR THE ODD SIDE AND MAKE SURE REPLACEMENT
