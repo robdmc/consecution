@@ -97,22 +97,14 @@ class Pipeline(object):
     def __getitem__(self, name):
         node = self._node_lookup.get(name, None)
         if node is None:
-            raise KeyError('\nNo node named {}'.format(name))
+            raise KeyError('No node named \'{}\''.format(name))
         return node
-
-    def _pop_node_name(self, name, node_list):
-        name_list = [n.name for n in node_list]
-        if name in name_list:
-            return node_list.pop(name_list.index(name))
-        else:
-            return None
 
     def __setitem__(self, name_to_replace, replacement_node):
         # make sure replacement node has proper name
         if name_to_replace != replacement_node.name:
             raise ValueError(
-                '\nReplacement node must have the same name as the '
-                'node it is replacing'
+                'Replacement node must have the same name.'
             )
 
         # this will automatically raise error if the name doesn't exist
@@ -151,18 +143,42 @@ class Pipeline(object):
         pre/post hooks for when they are called either on the pipeline
         class or on any class derived from it.
         """
-        if name == 'begin':
+        trapped_names = {
+            'begin',
+            'end',
+            'reset'
+        }
+        if name in trapped_names:
             def wrapper():
                 super(Pipeline, self).__getattribute__(name)()
-                self._begin()
-            return wrapper
-        elif name == 'end':
-            def wrapper():
-                self._end()
-                return super(Pipeline, self).__getattribute__(name)()
+                return self.__class__.__dict__['_{}'.format(name)](self)
             return wrapper
         else:
             return super(Pipeline, self).__getattribute__(name)
+
+    # def __getattribute__orig(self, name):
+    #     """
+    #     This should trap for the begin() and end() method calls and install
+    #     pre/post hooks for when they are called either on the pipeline
+    #     class or on any class derived from it.
+    #     """
+    #     if name == 'begin':
+    #         def wrapper():
+    #             super(Pipeline, self).__getattribute__(name)()
+    #             self._begin()
+    #         return wrapper
+    #     elif name == 'end':
+    #         def wrapper():
+    #             self._end()
+    #             return super(Pipeline, self).__getattribute__(name)()
+    #         return wrapper
+    #     elif name == 'reset':
+    #         def wrapper():
+    #             self._reset()
+    #             return super(Pipeline, self).__getattribute__(name)()
+    #         return wrapper
+    #     else:
+    #         return super(Pipeline, self).__getattribute__(name)
 
     def begin(self):
         """
@@ -176,7 +192,16 @@ class Pipeline(object):
         Users can override these methods in derived classes.  They have
         no action here in base class, but the pre/post hooks are called
         to perform the necessary actions.
+        TODO: make sure you remember that the end method can return a value
         """
+
+    def reset(self):
+        """
+        User can override this to do whatever logic they want
+        """
+
+    def _reset(self):
+        self.top_node.top_down_call('reset')
 
     def _begin(self):
         self.top_node.top_down_call('_begin')
@@ -193,6 +218,10 @@ class Pipeline(object):
         self.top_node._process(item)
 
     def consume(self, iterable):
+        """
+        TODO: document that the consume method returns the result
+        of the pipeline end method.
+        """
         self.begin()
         for item in iterable:
             self.top_node._process(item)

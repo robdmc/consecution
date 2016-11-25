@@ -3,7 +3,6 @@ Consecution
 
 Introduction
 ---
-I WANT TO CHANGE THIS UP SO THAT BULLET POINTS CORRESPOND TO DIFFERENT LINKS IN THIS README
 Consecution is:
   * An easy-to-use pipeline abstraction inspired by <a href="http://storm.apache.org/releases/current/Tutorial.html"> Apache Storm Topologies</a>
   * Designed to simplify building ETL pipelines that are robust and easy to test
@@ -11,6 +10,11 @@ Consecution is:
   * Built using synchronous, single-threaded execution strategies designed to run efficiently on a single core
   * Implemented in pure-python with optional requirements that are needed only for graph visualization
   * Written with 100% test coverage
+
+Consecution makes it easy to build systems like this.
+
+![Output Image](/images/etl_example.png?raw=true "ETL Example")
+
 
 Installation
 ---
@@ -51,13 +55,10 @@ them.
 ```python
 from consecution import Node, Pipeline
 
-# define a node class
+# This is the same node class we defined above
 class LogNode(Node):
     def process(self, item):
-        # any logic you want for processing single item 
         print('{} processing {}'.format(self.name, item))
-
-        # send item downstream
         self.push(item)
 
 # Connect nodes with pipe symbols to create pipeline for consuming any iterable.
@@ -119,13 +120,9 @@ our logging node, we could construct a pipeline like this:
 ```python
 from consecution import Node, Pipeline
 
-# define a node class
 class LogNode(Node):
     def process(self, item):
-        # any logic you want for processing single item 
         print('{} processing {}'.format(self.name, item))
-
-        # send item downstream
         self.push(item)
 
 # pipe to a list of nodes to broadcast items
@@ -163,13 +160,9 @@ list.  The routing function will direct the flow of items as illustrated below.
 ```python
 from consecution import Node, Pipeline
 
-# define a node class
 class LogNode(Node):
     def process(self, item):
-        # any logic you want for processing single item 
         print('{: >15} processing {}'.format(self.name, item))
-
-        # send item downstream
         self.push(item)
         
 def parity(item):
@@ -212,13 +205,9 @@ list together into the single downstream node like this.
 ```python
 from consecution import Node, Pipeline
 
-# define a node class
 class LogNode(Node):
     def process(self, item):
-        # any logic you want for processing single item 
         print('{: >15} processing {}'.format(self.name, item))
-
-        # send item downstream
         self.push(item)
         
 def parity(item):
@@ -268,18 +257,14 @@ printing their sum.
 ```python
 from consecution import Node, Pipeline
 
-# define a node class
 class LogNode(Node):
     def begin(self):
         self.sum = 0
         print('{}.begin()'.format(self.name))
 
     def process(self, item):
-        # any logic you want for processing single item 
         print('{: >15} processing {}'.format(self.name, item))
         self.sum += item
-
-        # send item downstream
         self.push(item)
 
     def end(self):
@@ -330,10 +315,8 @@ mutating and accessing global state.
 ```python
 from consecution import Node, Pipeline, GlobalState
 
-# define a node class
 class LogNode(Node):
     def process(self, item):
-        # add an element to the messages list on global state
         self.global_state.messages.append(
             '{: >15} processing {}'.format(self.name, item)
         )
@@ -589,7 +572,7 @@ aggregate with product, right justified
 We end with a full-blown example of using a pipeline to aggregate data from a
 csv file.  The data is contained in 
 (FIX THIS LINK AFTER BRANCH MERGE)
-<a href="https://raw.githubusercontent.com/robdmc/consecution/add_routing/sample_data.csv">
+<a href="https://raw.githubusercontent.com/robdmc/consecution/master/sample_data.csv">
 a csv file </a> that looks like this.
 
 gender |age |spent
@@ -607,7 +590,7 @@ male   |60  |26.74
 
 
 Although there are much simpler ways of solving this problem, (e.g. with <a
-href="https://github.com/robdmc/consecution/blob/add_routing/pandashells.md">
+href="https://github.com/robdmc/consecution/blob/master/pandashells.md">
 Pandashells</a>)
 we deliberately construct a complex topology just to illustrate how to achieve
 complexity when it is actually needed.
@@ -740,7 +723,7 @@ And this is the result of running the pipeline with the sample csv file.
 ```
 
 As illustrated in the <a
-href="https://github.com/robdmc/consecution/blob/add_routing/pandashells.md">
+href="https://github.com/robdmc/consecution/blob/master/pandashells.md">
 Pandashells</a> example, this aggregation is actually much more simple to
 implement in Pandas.  However, there is an important caveat.  The Pandas
 solution must load the entire csv file into memory at once.  If you look at the

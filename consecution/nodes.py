@@ -1,12 +1,8 @@
 import sys
 from collections import Counter, deque, OrderedDict
-import hashlib
-from itertools import product
 import traceback
 from consecution.utils import Clock
 
-#TODO:  Make sure you don't allow calling .push from within a .begin method
-#       I think I handled this in the Ambition version of Node.
 
 class Node(object):
     def __init__(self, name, **kwargs):
@@ -17,9 +13,6 @@ class Node(object):
         self._upstream_nodes = []
         self._downstream_nodes = []
 
-        # this flag will be set when this node and all its upstreams are
-        # done processing
-        #self._all_upstreams_complete = False
         self._num_top_down_calls = 0
 
         # node network can be visualized with pydot.  These hold args and kwargs
@@ -51,6 +44,9 @@ class Node(object):
         return self.__hash__() == other.__hash__()
 
     def __lt__(self, other):
+        """
+        I need this to be able to sort by name
+        """
         return self.name < other.name
 
     def __getitem__(self, key):
@@ -118,7 +114,6 @@ class Node(object):
             router = routers[0] if routers else None
         return router
 
-
     def __or__(self, other):
         router = self._get_router(other)
         self._connect_lefts_to_rights(self, other, router)
@@ -162,7 +157,6 @@ class Node(object):
             if len(node._upstream_nodes) == 0
         }
 
-
     @property
     def root_nodes(self):
         """
@@ -178,6 +172,9 @@ class Node(object):
         return self.depth_first_search('both')
 
     def log(self, what):
+        """
+        TODO: document this
+        """
         allowed = ['input', 'output']
         if what not in allowed:
             raise ValueError(
@@ -196,9 +193,7 @@ class Node(object):
                 self.pipeline._longest_node_name_len_)
 
             self.pipeline._node_repr += template.format(
-                self.name, downstreams).replace(
-                    '\'', ''
-                )
+                self.name, downstreams).replace('\'', '')
 
     def top_down_make_repr(self):
         if not hasattr(self, 'pipeline'):
@@ -209,26 +204,6 @@ class Node(object):
             len(n.name) for n in self.all_nodes)
         self.pipeline._node_repr = ''
         self.top_node.top_down_call('_get_downstream_reps')
-
-    #def top_down_call_orig(self, method_name):
-    #    """
-    #    This recursively calls a method on self and all downstreams. It is used
-    #    to make sure begin() and end() are not called before all their
-    #    upstream counterparts.
-    #    """
-    #    # search all upstreams for incomplete nodes.  If you find one,
-    #    # you're done
-    #    for upstream in self._upstream_nodes:
-    #        if not upstream._all_upstreams_complete:
-    #            return
-    #    # if you get here, that means all upstreams are complete
-    #    # so call the method and mark yourself as complete
-    #    getattr(self, method_name)()
-    #    self._all_upstreams_complete = True
-
-    #    # now run recursive call on all your downstreams
-    #    for downstream in self._downstream_nodes:
-    #        downstream.top_down_call(method_name)
 
     def top_down_call(self, method_name):
         """
@@ -281,8 +256,7 @@ class Node(object):
             as_ordered_list=as_ordered_list)
 
     def search(
-            self, direction='both', how='breadth_first', as_ordered_list=False,
-            ):
+            self, direction='both', how='breadth_first', as_ordered_list=False):
 
         """
         This is a depth first search using a stack to emulate recursion
@@ -294,7 +268,7 @@ class Node(object):
                 '\'how\' argument must be one of '
                 '[\'depth_first\', \'breadth_first\']'
             )
-        # What I really want is an ordered set, which doesn't exist.  So I'm 
+        # What I really want is an ordered set, which doesn't exist.  So I'm
         # using the keys of an ordered dict to get the functionality I want.
         # I have no need for the values in this dict, only the keys.
         visited_nodes = OrderedDict()
@@ -316,15 +290,15 @@ class Node(object):
             # I have no need for the value, so set it to None
             visited_nodes[node] = None
 
-            if direction == 'up':
-                neighbors = node._upstream_nodes
-            elif direction == 'down':
-                neighbors = node._downstream_nodes
-            elif direction == 'both':
-                neighbors = node._upstream_nodes + node._downstream_nodes
-            else:
+            neighbor_dict = {
+                'up': node._upstream_nodes,
+                'down': node._downstream_nodes,
+                'both': node._upstream_nodes + node._downstream_nodes,
+            }
+            if direction not in neighbor_dict:
                 raise ValueError(
                     'direction must be \'up\', \'dowwn\' or \'both\'')
+            neighbors = neighbor_dict[direction]
 
             # search all neightbors to this node for unvisited nodes
             for node in neighbors:
@@ -455,7 +429,6 @@ class Node(object):
         if file_name[-4:] != '.' + kind:
             file_name = '{}.{}'.format(file_name, kind)
 
-        #graph.write_raw('rob.dot')
         # write the appropriate file
         if kind == 'pdf':
             graph.write_pdf(file_name)
@@ -476,6 +449,11 @@ class Node(object):
                 'You must define a .process(self, item) method on all nodes'
             ).format(repr(self.name))
         )
+
+    def reset(self):
+        """
+        User can override this to do whatever logic they want.
+        """
 
     def _logged_process(self, item):
         if self._logging == 'input':
@@ -498,7 +476,6 @@ class Node(object):
             ).format(self.name, code_file, line_no, line_txt)
             traceback.print_exc()
             raise AttributeError(msg)
-
 
     def begin(self):
         pass
@@ -524,7 +501,6 @@ class Node(object):
         # to the appropriate callable.
         for downstream in self._downstream_nodes:
             downstream._process(item)
-
 
 
 class _RouterNode(Node):
@@ -554,9 +530,6 @@ class _RouterNode(Node):
                     [n.name for n in self._downstream_nodes]
                 )
             )
-
-        if self._logging == 'output':
-            self._write_log(item)
 
         node._process(item)
 
@@ -605,5 +578,3 @@ class GroupByNode(Node):
             return wrapper
         else:
             return super(GroupByNode, self).__getattribute__(name)
-
-

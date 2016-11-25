@@ -1,10 +1,37 @@
 import os
-import sys
 from collections import namedtuple
 import shutil
 import tempfile
 from unittest import TestCase
 from consecution.nodes import Node
+
+
+class NodeUnitTests(TestCase):
+    def test_args_as_atts(self):
+        n = Node('my_node', silly_attribute='silly')
+        self.assertEqual(n.silly_attribute, 'silly')
+
+    def test_comparisons(self):
+        a = Node('a')
+        b = Node('b')
+
+        self.assertTrue(a == a)
+        self.assertFalse(a == b)
+
+        self.assertTrue(a < b)
+        self.assertFalse(b < a)
+
+    def test_no_getitem(self):
+        a = Node('a')
+        with self.assertRaises(ValueError):
+            a['b']
+
+    def test_bad_slot_name(self):
+        a = Node('a')
+        b = Node('b')
+        with self.assertRaises(ValueError):
+            a._get_exposed_slots(b, 'bad_arg')
+
 
 class ExplicitWiringTests(TestCase):
     def setUp(self):
@@ -72,7 +99,6 @@ class ExplicitWiringTests(TestCase):
         #    ] | k
         # ] | l [m, n]
 
-
     def do_graph_wiring(self):
         # define nodes
         a = Node('a')
@@ -94,15 +120,15 @@ class ExplicitWiringTests(TestCase):
         self.node_list = [a, b, c, d, e, f, g, h, i, j, k, l, m, n]
         self.top_node = a
 
-        # wire up nodes using dsl
-        a | [
-               b,
-               c | [
-                       d,
-                       e  | [f, g, h, i] | j
-                   ] | k
-            ] | l | [m, n]
-
+        # wire up nodes using dsl (if statement just to make flake8 work)
+        if True:  # flake8: noqa
+            a | [
+                   b,
+                   c | [
+                           d,
+                           e  | [f, g, h, i] | j
+                       ] | k
+                ] | l | [m, n]
 
     def test_connections(self):
         Conns = namedtuple('Conns', 'node upstreams downstreams')
@@ -204,6 +230,16 @@ class ExplicitWiringTests(TestCase):
         self.top_node.plot(out_file)
         #uncomment the next line if you want to look at the graph
         os.system('cp {} /tmp'.format(out_file))
+
+    def test_bad_search_direction(self):
+        self.do_wiring()
+        with self.assertRaises(ValueError):
+            self.top_node.breadth_first_search(direction='bad')
+
+    def test_bad_search_method(self):
+        self.do_wiring()
+        with self.assertRaises(ValueError):
+            self.top_node.search(how='bad')
 
 
 class DSLWiringTests(ExplicitWiringTests):
@@ -374,8 +410,6 @@ class PrintingTests(TestCase):
             'l.my_router | [m, n]',
         ])
         self.assertEqual(lines, expected_lines)
-
-
 
 
 class RoutingTests(TestCase):

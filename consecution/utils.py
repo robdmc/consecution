@@ -1,48 +1,85 @@
 from collections import Counter
+from contextlib import contextmanager
 import datetime
+
 
 class Clock(object):
     def __init__(self):
         # see the reset method for instance attributes
-        self.reset()
-
-    def start(self, name):
-        if name not in self.active_start_times:
-            self.active_start_times[name] = datetime.datetime.now()
-
-    def stop(self, name):
-        ending = datetime.datetime.now()
-        if name in self.active_start_times:
-            starting = self.active_start_times.pop(name)
-            self.delta.update({name: (ending - starting).total_seconds()})
-
-    def pause(self):
-        for name in self.active_start_times.keys():
-            self.stop(name)
-            self.paused_set.add(name)
-
-    def resume(self):
-        for name in self.paused_set:
-            self.start(name)
-        self.paused_set = set()
-
-    def reset(self):
         self.delta = Counter()
         self.active_start_times = dict()
-        self.paused_set = set()
+
+    @contextmanager
+    def running(self, *names):
+        self.start(*names)
+        yield
+        self.stop(*names)
+
+    @contextmanager
+    def paused(self, *names):
+        self.stop(*names)
+        yield
+        self.start(*names)
+
+    def start(self, *names):
+        if not names:
+            raise ValueError('You must provide at least one name to start')
+
+        for name in names:
+            if name not in self.active_start_times:
+                self.active_start_times[name] = datetime.datetime.now()
+
+    def stop(self, *names):
+        ending = datetime.datetime.now()
+        if not names:
+            names = self.active_start_times.keys()
+        for name in names:
+            if name in self.active_start_times:
+                starting = self.active_start_times.pop(name)
+                self.delta.update({name: (ending - starting).total_seconds()})
+
+    def reset(self, *names):
+        if not names:
+            names = self.active_start_times.keys()
+        for name in names:
+            if name in self.delta:
+                self.delta.pop(name)
+            if name in self.active_start_times:
+                self.active_start_times.pop(name)
+
+    def get_time(self, *names):
+        ending = datetime.datetime.now()
+        if not names:
+            names = list(self.delta.keys())
+            names.extend(list(self.active_start_times.keys()))
+
+        delta = Counter()
+        for name in names:
+            if name in self.delta:
+                delta.update({name: self.delta[name]})
+            elif name in self.active_start_times:
+                delta.update(
+                    {
+                        name: (
+                            ending - self.active_start_times[name]
+                        ).total_seconds()
+                    }
+                )
+        if len(delta) == 1:
+            return delta[delta.keys()[0]]
+        else:
+            return dict(delta)
 
     def __str__(self):
         records = sorted(self.delta.items(), key=lambda t: t[1], reverse=True)
-        name_length = max(len(key) for key in self.delta.keys())
-        template = '{:>%d}  {}\n' % name_length
+        records = [('%0.6f' % r[1], r[0]) for r in records]
 
-        row_list = []
-        row_list.append(template.format('seconds', 'name'))
+        out_list = ['{: <15s}{}'.format('seconds', 'name')]
 
         for rec in records:
-            row_list.append(template.format(*rec))
-        return ''.join(row_list)
+            out_list.append('{: <15s}{}'.format(*rec))
+
+        return '\n'.join(out_list)
 
     def __repr__(self):
         return self.__str__()
-
