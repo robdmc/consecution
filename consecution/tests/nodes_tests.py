@@ -231,6 +231,11 @@ class ExplicitWiringTests(TestCase):
         #uncomment the next line if you want to look at the graph
         os.system('cp {} /tmp'.format(out_file))
 
+    def test_write_bad_kind(self):
+        self.do_wiring()
+        with self.assertRaises(ValueError):
+            self.top_node.plot(kind='bad')
+
     def test_bad_search_direction(self):
         self.do_wiring()
         with self.assertRaises(ValueError):

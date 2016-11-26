@@ -264,7 +264,7 @@ class ConstructingTests(TestBase):
         self.pipeline.plot()
 
         # make sure top node plot was properly called
-        self.assertEqual(args_kwargs[0], ('pipeline', 'png', False))
+        self.assertEqual(args_kwargs[0], ('pipeline', 'png'))
         self.assertEqual(args_kwargs[1], {})
 
 

@@ -20,5 +20,3 @@ for line in text.split('\n'):
     line = re.sub(rexp_allowed_chars, '', line)
     line = re.sub(rexp_punctuation, ' ', line)
     print line
-
-

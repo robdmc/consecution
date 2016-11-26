@@ -228,7 +228,8 @@ class Pipeline(object):
         return self.end()
 
     def plot(self, file_name='pipeline', kind='png', notebook=False):
-        self.top_node.plot(file_name, kind, notebook)
+        self.top_node.plot(file_name, kind)
+        return self
 
     def __str__(self):
         return (
@@ -241,3 +242,7 @@ class Pipeline(object):
 
     def __repr__(self):
         return self.__str__()
+
+    # No good way to test this unless you know dot is installed.
+    def _repr_svg_(self):  # pragma: no cover
+        return self.top_node._build_pydot_graph()._repr_svg_()

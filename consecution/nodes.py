@@ -348,7 +348,7 @@ class Node(object):
         self._check_for_cycles()
 
         self._pydot_edge_kwarg_list.append(
-            dict(src=self.name, dst=other.name, dir='forward'))
+            dict(tail_name=self.name, head_name=other.name))
 
     def remove_downstream(self, other):
         # remove self from the other's upstreams
@@ -362,8 +362,9 @@ class Node(object):
         # remove this connection from the pydot kwargs list
         new_kwargs_list = []
         for kwargs in self._pydot_edge_kwarg_list:
-            if kwargs['src'] == self.name and kwargs['dst'] == other.name:
-                continue
+            if kwargs['tail_name'] == self.name:
+                if kwargs['head_name'] == other.name:
+                    continue
             new_kwargs_list.append(kwargs)
         self._pydot_edge_kwarg_list = new_kwargs_list
 
@@ -383,23 +384,23 @@ class Node(object):
             collect_kwargs(node)
 
         # doing import inside method so that pydot dependency is optional
-        import pydot
+        from graphviz import Digraph
 
         # create a pydot graph
-        graph = pydot.Dot(graph_type='graph')
+        graph = Digraph(comment='pipeline')
 
         # create pydot nodes for every node connected to this one
         for node_kwargs in node_kwargs_list:
-            graph.add_node(pydot.Node(**node_kwargs))
+            graph.node(**node_kwargs)
 
         # creat pydot edges between all nodes connected to this one
         for edge_kwargs in edge_kwargs_list:
-            graph.add_edge(pydot.Edge(**edge_kwargs))
+            graph.edge(**edge_kwargs)
 
         return graph
 
     def plot(
-            self, file_name='pipeline', kind='png', notebook=False):  # pragma: no cover  (see above for why)
+            self, file_name='pipeline', kind='png'):
         """
         This method draws a pydot graph of your processing tree.  It does so using the
         pydot library which is based on the graphviz library.  You should only ever need
@@ -425,22 +426,29 @@ class Node(object):
         if kind not in ALLOWED_KINDS:
             raise ValueError('Only the following kinds are supported: {}'.format(ALLOWED_KINDS))
 
-        # make sure supplied filenames have the write extension
-        if file_name[-4:] != '.' + kind:
-            file_name = '{}.{}'.format(file_name, kind)
+        # set the output format
+        graph.format = kind
 
-        # write the appropriate file
-        if kind == 'pdf':
-            graph.write_pdf(file_name)
-        elif kind == 'png':
-            graph.write_png(file_name)
+        file_name = file_name.replace('.{}'.format(kind), '')
 
-        # display to notebook if requested
-        if notebook:
-            # do import here because IPython not core dependancy
-            from IPython.display import Image, display
-            graph.write_png(file_name)
-            display(Image(filename=file_name))
+        # write the output file
+        try:
+            graph.render(file_name)
+        except RuntimeError:
+            sys.stderr.write(
+                '\n\n'
+                '=========================================================\n'
+                'Problem executing GraphViz.  Make sure you have it\n'
+                'properly installed.\n'
+                'http://www.graphviz.org/\n'
+                'If you are on a mac, you should be able to install it with\n'
+                'brew install graphviz.\n\n'
+                'If you are on ubuntu, you can install it with\n'
+                'apt-get install graphviz\n'
+                '=========================================================\n'
+                '\n\n'
+            )
+            raise
 
     def process(self, item):
         raise NotImplementedError(
@@ -463,7 +471,8 @@ class Node(object):
     def _begin(self):
         try:
             self.begin()
-        except AttributeError, e:
+        except AttributeError:
+            e = sys.exc_info()[1]
             tb = sys.exc_info()[2]
             (
                 code_file, line_no, method_name, line_txt
