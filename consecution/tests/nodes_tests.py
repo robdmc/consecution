@@ -3,11 +3,20 @@ from collections import namedtuple
 import shutil
 import tempfile
 from unittest import TestCase
+import subprocess
 
 from mock import patch
 
 from consecution.nodes import Node
 from consecution.tests.testing_helpers import print_catcher
+
+def dot_installed():
+    p = subprocess.Popen(
+        ['bash', '-c', 'which dot'], stdout=subprocess.PIPE)
+    p.wait()
+    result = p.stdout.read().decode("utf-8")
+    return 'dot' in result
+
 
 class FakeDigraph(object):  # pragma: no cover
     def __init__(self, *args, **kwargs):
@@ -260,11 +269,18 @@ class ExplicitWiringTests(TestCase):
             node.add_downstream(other)
 
     def test_write(self):
-        self.do_wiring()
-        out_file = os.path.join(self.temp_dir, 'out.png')
-        self.top_node.plot(out_file)
-        #uncomment the next line if you want to look at the graph
-        os.system('cp {} /tmp'.format(out_file))
+        # only run this test if dot is installed
+        #p = subprocess.Popen(
+        #    ['bash', '-c', 'which dot'], stdout=subprocess.PIPE)
+        #p.wait()
+        #result = p.stdout.read().decode("utf-8") 
+        #if 'dot' in result:
+        if dot_installed():
+            self.do_wiring()
+            out_file = os.path.join(self.temp_dir, 'out.png')
+            self.top_node.plot(out_file)
+            #uncomment the next line if you want to look at the graph
+            os.system('cp {} /tmp'.format(out_file))
 
     def test_write_bad_kind(self):
         self.do_wiring()
