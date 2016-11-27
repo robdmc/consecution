@@ -1,3 +1,4 @@
+from __future__ import print_function
 from collections import namedtuple, Counter
 from unittest import TestCase
 from consecution.nodes import Node, GroupByNode
@@ -87,10 +88,10 @@ class GlobalStateUnitTests(TestCase):
     def test_printing(self):
         g = GlobalState(custom_name='custom')
         with print_catcher() as catcher1:
-            print g
+            print(g)
 
         with print_catcher() as catcher2:
-            print repr(g)
+            print(repr(g))
 
         self.assertTrue(
             'GlobalState attributes: [\'custom_name\']' in catcher1.txt)
@@ -107,7 +108,7 @@ class OrOpTests(TestCase):
 
         p = Pipeline(a | ([b, c] | d))
         with print_catcher() as catcher:
-            print p
+            print(p)
         self.assertTrue('a | [b, c]' in catcher.txt)
         self.assertTrue('c | d' in catcher.txt)
         self.assertTrue('b | d' in catcher.txt)
@@ -139,6 +140,27 @@ class PipelineUnitTests(TestCase):
             with print_catcher('stderr'):
                 pipeline.begin()
 
+    def test_no_process(self):
+        class N(Node):
+            pass
+
+        pipe = Pipeline(N('a') | N('b'))
+        with self.assertRaises(NotImplementedError):
+            pipe.consume(range(3))
+
+    def test_bad_route(self):
+        def bad_router(item):
+            return 'bad'
+
+        class N(Node):
+            def process(self, item):
+                self.push(item)
+
+        pipeline = Pipeline(N('a') | [N('b'), N('c'), bad_router])
+
+        with self.assertRaises(ValueError):
+            pipeline.consume(range(3))
+
     def test_bad_node_lookup(self):
         pipeline = Pipeline(TestNode('a') | TestNode('b'))
 
@@ -155,7 +177,7 @@ class PipelineUnitTests(TestCase):
             TestNode('a') | [[Node('b'), Node('c')]])
 
         with print_catcher() as catcher:
-            print pipeline
+            print(pipeline)
 
         self.assertTrue('a | [b, c]' in catcher.txt)
 
@@ -174,6 +196,27 @@ class PipelineUnitTests(TestCase):
         """
         for line in text.split('\n'):
             self.assertTrue(line.strip() in catcher.txt)
+
+    def test_reset(self):
+        class N(Node):
+            def begin(self):
+                self.was_reset = False
+
+            def process(self, item):
+                self.push(item)
+
+            def reset(self):
+                self.was_reset = True
+
+        pipe = Pipeline(N('a') | N('b'))
+        pipe.consume(range(3))
+        self.assertFalse(pipe['a'].was_reset)
+        self.assertFalse(pipe['b'].was_reset)
+
+        pipe.reset()
+
+        self.assertTrue(pipe['a'].was_reset)
+        self.assertTrue(pipe['b'].was_reset)
 
 
 class LoggingTests(TestBase):
@@ -287,3 +330,23 @@ class GroupByTests(TestCase):
             pipe.global_state.batches,
             [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
         )
+
+    def test_undefined_key(self):
+        class B(GroupByNode):
+            def process(self, item):  # pragma: no cover
+                pass
+
+        pipe = Pipeline(B('a'))
+
+        with self.assertRaises(NotImplementedError):
+            pipe.consume(range(9))
+
+    def test_undefined_process(self):
+        class B(GroupByNode):
+            def key(self, item):
+                pass
+
+        pipe = Pipeline(B('a'))
+
+        with self.assertRaises(NotImplementedError):
+            pipe.consume(range(9))

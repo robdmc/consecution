@@ -32,7 +32,7 @@ class Clock(object):
     def stop(self, *names):
         ending = datetime.datetime.now()
         if not names:
-            names = self.active_start_times.keys()
+            names = list(self.active_start_times.keys())
         for name in names:
             if name in self.active_start_times:
                 starting = self.active_start_times.pop(name)
@@ -40,7 +40,8 @@ class Clock(object):
 
     def reset(self, *names):
         if not names:
-            names = self.active_start_times.keys()
+            names = list(self.active_start_times.keys())
+            names.extend(list(self.delta.keys()))
         for name in names:
             if name in self.delta:
                 self.delta.pop(name)
@@ -66,7 +67,7 @@ class Clock(object):
                     }
                 )
         if len(delta) == 1:
-            return delta[delta.keys()[0]]
+            return delta[list(delta.keys())[0]]
         else:
             return dict(delta)
 

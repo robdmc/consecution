@@ -56,3 +56,20 @@ class ClockTests(TestCase):
             {int(10 * v) for v in clock.get_time().values()},
             {1, 2}
         )
+
+    def test_stop_all(self):
+        clock = Clock()
+        clock.start('a', 'b')
+        time.sleep(.1)
+        clock.stop()
+        self.assertEqual(int(10 * clock.get_time('a')), 1)
+        self.assertEqual(int(10 * clock.get_time('b')), 1)
+
+    def test_reset_all(self):
+        clock = Clock()
+        clock.start('a', 'b')
+        time.sleep(.1)
+        clock.stop('b')
+        self.assertEqual(len(clock.delta), 1)
+        clock.reset()
+        self.assertEqual(len(clock.get_time()), 0)

@@ -3,10 +3,34 @@ from collections import namedtuple
 import shutil
 import tempfile
 from unittest import TestCase
+
+from mock import patch
+
 from consecution.nodes import Node
+from consecution.tests.testing_helpers import print_catcher
+
+class FakeDigraph(object):  # pragma: no cover
+    def __init__(self, *args, **kwargs):
+        pass
+    def node(self, *args, **kwargs):
+        pass
+    def edge(self, *args, **kwargs):
+        pass
+    def render(self, *args, **kwargs):
+        raise RuntimeError('fake runtime error')
 
 
 class NodeUnitTests(TestCase):
+    def test_bad_logging_args(self):
+        n = Node('a')
+        with self.assertRaises(ValueError):
+            n.log('bad')
+
+    def test_bad_top_down_make_repr_call(self):
+        n = Node('a')
+        with self.assertRaises(ValueError):
+            n.top_down_make_repr()
+
     def test_args_as_atts(self):
         n = Node('my_node', silly_attribute='silly')
         self.assertEqual(n.silly_attribute, 'silly')
@@ -20,6 +44,17 @@ class NodeUnitTests(TestCase):
 
         self.assertTrue(a < b)
         self.assertFalse(b < a)
+
+    @patch(
+        'consecution.nodes.Node._build_pydot_graph', lambda a: FakeDigraph())
+    def test_graphviz_not_installed(self):
+        a = Node('a')
+        b = Node('b')
+        p = a | b
+        with self.assertRaises(RuntimeError):
+            with print_catcher('stderr') as printer:
+                p.plot()
+        self.assertTrue('graphviz' in printer.txt)
 
     def test_no_getitem(self):
         a = Node('a')
@@ -207,7 +242,7 @@ class ExplicitWiringTests(TestCase):
         # this test is funky in that it has assertion in a loop.
         # but I wanted to be sure dups are detected everywhere 
         for node in self.top_node.all_nodes:
-           with self.assertRaises(ValueError):
+            with self.assertRaises(ValueError):
                 node.add_downstream(self.top_node)
 
     def test_multi_root(self):
@@ -304,7 +339,7 @@ class BreadthFirstSearchTests(TestCase):
         h = Node('h')
         i = Node('i')
 
-        def silly_router(item):
+        def silly_router(item):  # pragma: no cover
             return 0
 
         a | [b, c] | [d, e, f, silly_router] | [h, i]
@@ -332,7 +367,7 @@ class BreadthFirstSearchTests(TestCase):
         g = Node('g')
         h = Node('h')
 
-        def silly_router(item):
+        def silly_router(item):  # pragma: no cover
             return 0
 
         a | [b, c] | [d, e, f, silly_router] | h
@@ -377,7 +412,7 @@ class PrintingTests(TestCase):
         self.node_list = [a, b, c, d, e, f, g, h, i, j, k, l, m, n]
         self.top_node = a
 
-        def my_router(item):
+        def my_router(item):  # pragma: no cover
             return 'm'
 
         # wire up nodes using dsl
@@ -434,10 +469,10 @@ class RoutingTests(TestCase):
         bb = Node('bb')
         ee = Node('ee')
 
-        def silly_router(item):
+        def silly_router(item):  # pragma: no cover
             return 0
 
-        class ClassRouter(object):
+        class ClassRouter(object):  # pragma: no cover
             def __call__(self, arg):
                 return arg
 

@@ -345,6 +345,8 @@ class Node(object):
         other._upstream_nodes.append(self)
 
         self._check_for_dups()
+        if self.name == other.name:
+            raise ValueError('{} can\'t be downstream to itself'.format(self))
         self._check_for_cycles()
 
         self._pydot_edge_kwarg_list.append(

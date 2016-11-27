@@ -54,5 +54,8 @@ setup(
         'Topic :: Scientific/Engineering',
     ],
     # If you add/remove a requirement, please also update full
-    extras_require={'full': ['graphviz']},
+    extras_require={'test': ['nose', 'coverage', 'mock']},
+    install_requires=[
+        'graphviz'
+    ]
 )
