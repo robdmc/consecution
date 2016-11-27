@@ -41,7 +41,6 @@ setup(
     keywords=('pipeline apache storm DAG graph topology ETL'),
     url='https://github.com/robdmc/consecution',
     packages=find_packages(),
-    # include_package_data=True,
     long_description=LONG_DESCRIPTION,
     classifiers=[
         'Environment :: Console',
@@ -53,9 +52,6 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Topic :: Scientific/Engineering',
     ],
-    # If you add/remove a requirement, please also update full
-    extras_require={'test': ['nose', 'coverage', 'mock']},
-    install_requires=[
-        'graphviz'
-    ]
+    extras_require={'dev': ['nose', 'coverage', 'mock']},
+    install_requires=['graphviz']
 )
