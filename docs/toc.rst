@@ -5,6 +5,6 @@ Table of Contents
    :maxdepth: 2
 
    index
-   ref/brain
+   ref/consecution
    contributing
    release_notes

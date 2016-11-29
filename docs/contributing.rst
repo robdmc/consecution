@@ -4,13 +4,13 @@ Contributing
 Running the tests
 -----------------
 
-To get the source source code and run the unit tests, run::
+To get the source source code and run the unit tests
 
 
 Code Quality
 ------------
 
-For code quality, please run flake8::
+For code quality, please run flake8
 
 
 Code Styling

@@ -2,7 +2,7 @@ Release Notes
 =============
 
 v0.3.0
-----
+------
 
 * Added Django 1.9 support.
 

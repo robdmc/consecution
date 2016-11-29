@@ -5,6 +5,19 @@ from consecution.utils import Clock
 
 
 class Node(object):
+    """
+    :type name: str
+    :param str: The name of this node.  Must be unique within a pipeline.
+
+    :type kwargs:  keyword args
+    :param kwargs: Any additional keyword args are assigned as attributes
+                   on the node.
+
+    Nodes are declared by inheriting from this class.  You must define a
+    .process() method.  When in a pipeline, each node will have a .push()
+    method you can use to send items to all attached downstream nodes.
+
+    """
     def __init__(self, name, **kwargs):
         # assign any user-defined attributes
         for k, v in kwargs.items():
@@ -412,10 +425,11 @@ class Node(object):
         need the dependencies on a dev machine.  Pydot is a bit finicky about versioning, so
         this is what works as of  3/25/16.
         MacOS
-          conda uninstall pydot
-          brew install graphviz
-          pip install pydot2
-          pip install pyparsing==1.5.7
+
+        conda uninstall pydot
+        brew install graphviz
+        pip install pydot2
+        pip install pyparsing==1.5.7
 
         file_name: [str] the name of the visualization file
         kind: [str] the type of visualization file to create
@@ -453,6 +467,12 @@ class Node(object):
             raise
 
     def process(self, item):
+        """
+        :type item: object
+        :param item: The item this node should process
+
+        You must override this method with your own logic.
+        """
         raise NotImplementedError(
             (
                 'Error in node named {}\n'

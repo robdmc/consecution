@@ -5,24 +5,16 @@ import os
 import re
 
 
-# -- Django configuration -------------------------------------------------
-import sys
-sys.path.insert(0, os.path.abspath('..'))
-from settings import configure_settings
-configure_settings()
-
-from django.utils.html import strip_tags
-from django.utils.encoding import force_unicode
-
-def version():
+def get_version():
     """Obtain the packge version from a python file e.g. pkg/__init__.py
     See <https://packaging.python.org/en/latest/single_source_version.html>.
     """
-    file_dir = os.realpath(os.dirname(__file__))
-    version_file = read(
-        os.path.join(file_dir, '..', 'consecution', '__init__.py'))
-    version_match = re.search(r"""^__version__ = ['"]([^'"]*)['"]""",
-                              version_file, re.M)
+    file_dir = os.path.realpath(os.path.dirname(__file__))
+    with open(
+            os.path.join(file_dir, '..', 'consecution', '__init__.py')) as f:
+        txt = f.read()
+    version_match = re.search(
+        r"""^__version__ = ['"]([^'"]*)['"]""", txt, re.M)
     if version_match:
         return version_match.group(1)
     raise RuntimeError("Unable to find version string.")
