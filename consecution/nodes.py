@@ -163,7 +163,7 @@ class Node(object):
         Find all terminal nodes rooted in this node
         """
         return {
-            node for node in self.depth_first_search('down')
+            node for node in self.depth_first_walk('down')
             if len(node._downstream_nodes) == 0
         }
 
@@ -172,9 +172,9 @@ class Node(object):
         """
         Find all initial nodes rooted at this node
         """
-        self.depth_first_search('up')
+        self.depth_first_walk('up')
         return {
-            node for node in self.depth_first_search('up')
+            node for node in self.depth_first_walk('up')
             if len(node._upstream_nodes) == 0
         }
 
@@ -190,7 +190,7 @@ class Node(object):
 
     @property
     def all_nodes(self):
-        return self.depth_first_search('both')
+        return self.depth_first_walk('both')
 
     def log(self, what):
         """
@@ -256,27 +256,27 @@ class Node(object):
         else:
             self._num_top_down_calls += 1
 
-    def depth_first_search(self, direction='both', as_ordered_list=False):
+    def depth_first_walk(self, direction='both', as_ordered_list=False):
         """
         This is a depth first search using a stack to emulate recursion
         see good explanation at
         https://jeremykun.com/2013/01/22/depth-and-breadth-first-search/
         """
-        return self.search(
+        return self.walk(
             direction=direction, how='depth_first',
             as_ordered_list=as_ordered_list)
 
-    def breadth_first_search(self, direction='both', as_ordered_list=False):
+    def breadth_first_walk(self, direction='both', as_ordered_list=False):
         """
         This is a depth first search using a stack to emulate recursion
         see good explanation at
         https://jeremykun.com/2013/01/22/depth-and-breadth-first-search/
         """
-        return self.search(
+        return self.walk(
             direction=direction, how='breadth_first',
             as_ordered_list=as_ordered_list)
 
-    def search(
+    def walk(
             self, direction='both', how='breadth_first', as_ordered_list=False):
 
         """
@@ -349,8 +349,8 @@ class Node(object):
         return
 
     def _check_for_cycles(self):
-        self_and_upstreams = self.depth_first_search('up')
-        downstreams = self.depth_first_search('down') - {self}
+        self_and_upstreams = self.depth_first_walk('up')
+        downstreams = self.depth_first_walk('down') - {self}
         common_nodes = self_and_upstreams.intersection(downstreams)
         if common_nodes:
             raise ValueError('\n\nYour graph is not acyclic.  It has loops.')
