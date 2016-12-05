@@ -495,6 +495,8 @@ exploited to create flexible and reusable solutions.  Basically, you specify the
 connectivity you want to use in solving your problem, and then plug in the
 processing units later.  Breaking the problem up in this way allows you to swap
 out processing units to acheive different objectives with the same pipeline.
+
+TODO:  IN THIS EXAMPLE, MOVE THE PIPELINE BUILDER TO THE TOP
 ```python
 # node for left-justified logging
 class LeftLogNode(Node):

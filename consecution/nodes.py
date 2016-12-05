@@ -147,7 +147,8 @@ class Node(object):
     @property
     def top_node(self):
         """
-        Use a stack to emulate recursive search for top node.
+        This attribute always holds the top-most node in the node graph.
+        Consecution only allows one top node.
         """
         root_nodes = self.root_nodes
         if len(root_nodes) > 1:
@@ -160,7 +161,7 @@ class Node(object):
     @property
     def terminal_node_set(self):
         """
-        Find all terminal nodes rooted in this node
+        This attribute holds a set of all bottom nodes in the node graph.
         """
         return {
             node for node in self.depth_first_walk('down')
@@ -170,7 +171,10 @@ class Node(object):
     @property
     def initial_node_set(self):
         """
-        Find all initial nodes rooted at this node
+        When piecing together fragments of a graph, you can temporarily have
+        connected nodes with multiple "top-nodes."  This method returns this
+        set of nodes.  Node that consecution can only make pipelines from
+        graphs having a single top node.
         """
         self.depth_first_walk('up')
         return {
@@ -181,7 +185,8 @@ class Node(object):
     @property
     def root_nodes(self):
         """
-        Find root nodes of entire connected network
+        This attribute holds a list of all nodes that do not have any upstream
+        nodes attached.
         """
         return [
             node for node in self.all_nodes
@@ -190,11 +195,20 @@ class Node(object):
 
     @property
     def all_nodes(self):
+        """
+        This attribute contains a set of all nodes in the graph.
+        """
         return self.depth_first_walk('both')
 
     def log(self, what):
         """
-        TODO: document this
+        Calling this method on a node will turn on its logging feature.  This
+        means that the node will print logged items to the console.  You can
+        choose whether to log the inputs or outputs of a node.
+
+        :type name: what
+        :param what: One of 'input' or 'output' indicating whther you want to
+                     log the input or output of this node.
         """
         allowed = ['input', 'output']
         if what not in allowed:
@@ -217,6 +231,10 @@ class Node(object):
                 self.name, downstreams).replace('\'', '')
 
     def top_down_make_repr(self):
+        """
+        You should never need to use this method.  It iterates through the node
+        graph in top-down order making a repr string for each node.
+        """
         if not hasattr(self, 'pipeline'):
             raise ValueError(
                 'top_down_make_repr can only be called for nodes in a pipeline')
@@ -228,9 +246,14 @@ class Node(object):
 
     def top_down_call(self, method_name):
         """
-        This recursively calls a method on self and all downstreams. It is used
-        to make sure begin() and end() are not called before all their
-        upstream counterparts.
+        This utility method traverses the graph in top-down order and invokes
+        the named method on every node it encounters. It is used internally
+        to make sure the `.begin()` and `.end()` methods are not called before
+        their upstream counterparts.
+
+        :type method_name: str
+        :param method_name: The name of the method you would like to call in
+                            top-down order.
         """
         # record the number of upstreams this node has
         num_upstreams = len(self._upstream_nodes)
@@ -258,9 +281,19 @@ class Node(object):
 
     def depth_first_walk(self, direction='both', as_ordered_list=False):
         """
-        This is a depth first search using a stack to emulate recursion
-        see good explanation at
+        This method walks the graph of connected nodes in depth-first
+        order.  It uses a stack to emulate recursion. See good explanation at
         https://jeremykun.com/2013/01/22/depth-and-breadth-first-search/
+
+        :type direction: str
+        :param direction: one of 'up', 'down' or 'both' specifying the direction
+                          to walk.
+        :type as_ordered_list: Bool
+        :param as_ordered_list: If set to true, returns the walked nodes as
+                                an ordered list instead of an unordered set.
+
+        :rtype: list or set
+        :return: An iterable of the discovered nodes.
         """
         return self.walk(
             direction=direction, how='depth_first',
@@ -268,9 +301,19 @@ class Node(object):
 
     def breadth_first_walk(self, direction='both', as_ordered_list=False):
         """
-        This is a depth first search using a stack to emulate recursion
-        see good explanation at
+        This method walks the graph of connected nodes in breadth-first
+        order.  It uses a stack to emulate recursion. See good explanation at
         https://jeremykun.com/2013/01/22/depth-and-breadth-first-search/
+
+        :type direction: str
+        :param direction: one of 'up', 'down' or 'both' specifying the direction
+                          to walk.
+        :type as_ordered_list: Bool
+        :param as_ordered_list: If set to true, returns the walked nodes as
+                                an ordered list instead of an unordered set.
+
+        :rtype: list or set
+        :return: An iterable of the discovered nodes.
         """
         return self.walk(
             direction=direction, how='breadth_first',
@@ -280,9 +323,21 @@ class Node(object):
             self, direction='both', how='breadth_first', as_ordered_list=False):
 
         """
-        This is a depth first search using a stack to emulate recursion
-        see good explanation at
-        https://jeremykun.com/2013/01/22/depth-and-breadth-first-search/
+        This is the core algorithm for walking a graph in specified order.  It
+        is used by the `breadth_first_walk` and `depth_first_walk` methods.
+
+        :type how: str
+        :param how: one of 'breadth_first' or 'depth_first'
+
+        :type direction: str
+        :param direction: one of 'up', 'down' or 'both' specifying the direction
+                          to walk.
+        :type as_ordered_list: Bool
+        :param as_ordered_list: If set to true, returns the walked nodes as
+                                an ordered list instead of an unordered set.
+
+        :rtype: list or set
+        :return: An iterable of the discovered nodes.
         """
         if how not in {'depth_first', 'breadth_first'}:
             raise ValueError(
@@ -361,6 +416,13 @@ class Node(object):
             raise ValueError('Trying to connect a non-node type')
 
     def add_downstream(self, other):
+        """
+        You will probably use this method quite a bit.  It is used to manually
+        attach a downstream node.
+
+        :type other: consecution.Node
+        :param other: An instance of the node you want to attach
+        """
         self._validate_node(other)
         self._downstream_nodes.append(other)
         other._upstream_nodes.append(self)
@@ -374,6 +436,13 @@ class Node(object):
             dict(tail_name=self.name, head_name=other.name))
 
     def remove_downstream(self, other):
+        """
+        This method removes the given node from being attached as a downstream
+        node.
+
+        :type other: consecution.Node
+        :param other: An instance of the node you want to remove
+        """
         # remove self from the other's upstreams
         other._upstream_nodes = [
             n for n in other._upstream_nodes if n.name != self.name]
