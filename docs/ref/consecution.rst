@@ -13,31 +13,39 @@ the node state can be accomplished by defining a `.begin()` method.  In the
 descriptions below, it is assumed that the nodes being discussed have been wired
 together into a pipeline, and are ready to comsume items.
 
+See the 
+`Github README
+<https://github.com/robdmc/consecution/blob/master/README.md>`_
+for examples  of how to wire nodes into pipelines.
+
 Reserved Method Names
 ~~~~~~~~~~~~~~~~~~~~~
 The following Node methods are not intended to be overridden, so you should not
 define methods with these names in your node implementations unless you really
 know what you are doing.
 
-*  top_node
-*  initial_node_set
-*  terminal_node_set
-*  root_nodes
-*  all_nodes
-*  log
-*  top_down_make_repr
-*  top_down_call
-*  depth_first_search
-*  breadth_first_search
-*  search
-*  add_downstream
-*  remove_downstream
-*  plot
+*  `top_node`
+*  `initial_node_set`
+*  `terminal_node_set`
+*  `root_nodes`
+*  `all_nodes`
+*  `log`
+*  `top_down_make_repr`
+*  `top_down_call`
+*  `depth_first_search`
+*  `breadth_first_search`
+*  `search`
+*  `add_downstream`
+*  `remove_downstream`
+*  `plot`
 
 There are also a number of private method names you should avoid.  These can be
 identified by looking at the `source code 
 <https://github.com/robdmc/consecution/blob/master/consecution/nodes.py>`_
 
+
+Examples
+~~~~~~~~
 
 Here is the simplest possible node you could construct:
 
@@ -49,7 +57,7 @@ Here is the simplest possible node you could construct:
         def process(self, item):
             self.push(item)
 
-All notes acquire a `.push()` method when they are wired into a pipeline.  You
+All nodes acquire a `.push()` method when they are wired into a pipeline.  You
 can call this method anywhere in your class except in the `.begin()` method.
 The `.push(item)` method will take its argument and send it to the `.process()`
 methods of the nodes that are immediately downstream in your pipeline graph.
@@ -95,6 +103,8 @@ functionality of each method is explained in the code comments.
             # In this example, we simply reset the counter.
             self.counter = 0
 
+Node API Documentation
+~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: consecution.nodes.Node
     :members:

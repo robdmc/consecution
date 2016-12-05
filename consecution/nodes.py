@@ -13,9 +13,17 @@ class Node(object):
     :param kwargs: Any additional keyword args are assigned as attributes
                    on the node.
 
-    Nodes are declared by inheriting from this class.  You must define a
-    .process() method.  When in a pipeline, each node will have a .push()
-    method you can use to send items to all attached downstream nodes.
+    You create nodes by inheriting from this class.  You will be required to
+    implement a `.process()` on your class.  You can call the `.push()` method
+    from anywhere in your class implementation except from within the
+    `.begin()` method.
+
+    Note that although this documentation refers to "the `.push` method",
+    `push` is actually  a callable attribute assigned when nodes are placed
+    into pipelines.
+
+    Its signature is `.push(item)`, where `item` can be anything you want pushed
+    to nodes connected to the downstream side of the node.
 
     """
     def __init__(self, name, **kwargs):
@@ -211,7 +219,7 @@ class Node(object):
     def top_down_make_repr(self):
         if not hasattr(self, 'pipeline'):
             raise ValueError(
-                'top_down_print can only be called for nodes in a pipeline')
+                'top_down_make_repr can only be called for nodes in a pipeline')
 
         self.pipeline._longest_node_name_len_ = max(
             len(n.name) for n in self.all_nodes)
