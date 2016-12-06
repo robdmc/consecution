@@ -497,9 +497,9 @@ processing units later.  Breaking the problem up in this way allows you to swap
 out processing units to acheive different objectives with the same pipeline.
 
 ```python
-# This function defines a pipeline that can use swappable processing nodes
+# This function defines a pipeline that can use swappable processing nodes.
 # We don't worry about how we are going to do logging or aggregating.
-# We just focus on how the nodes are connected
+# We just focus on how the nodes are connected.
 def pipeline_factory(log_node, agg_node):
     pipe = Pipeline(
         log_node('extractor') | agg_node('aggregator') | log_node('result_logger')
