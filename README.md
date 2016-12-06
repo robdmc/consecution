@@ -576,7 +576,6 @@ aggregate with product, right justified
 # Aggregation Example
 We end with a full-blown example of using a pipeline to aggregate data from a
 csv file.  The data is contained in 
-(FIX THIS LINK AFTER BRANCH MERGE)
 <a href="https://raw.githubusercontent.com/robdmc/consecution/master/sample_data.csv">
 a csv file </a> that looks like this.
 
