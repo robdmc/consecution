@@ -496,7 +496,6 @@ connectivity you want to use in solving your problem, and then plug in the
 processing units later.  Breaking the problem up in this way allows you to swap
 out processing units to acheive different objectives with the same pipeline.
 
-TODO:  IN THIS EXAMPLE, MOVE THE PIPELINE BUILDER TO THE TOP
 ```python
 # This function defines a pipeline that can use swappable processing nodes
 # We don't worry about how we are going to do logging or aggregating.
