@@ -494,23 +494,19 @@ class Node(object):
     def plot(
             self, file_name='pipeline', kind='png'):
         """
-        This method draws a pydot graph of your processing tree.  It does so using the
-        pydot library which is based on the graphviz library.  You should only ever need
-        to do this for developement/debug, so the configuration required to do this is not
-        needed in production.  Since it doesn't make sense to call this method in production,
-        the imports it requires are loaded within the method itself.  That way we only
-        need the dependencies on a dev machine.  Pydot is a bit finicky about versioning, so
-        this is what works as of  3/25/16.
-        MacOS
+        This method draws a pydot graph of your processing tree.  You must have
+        graphviz installed on your system for it to work properly.  (See install
+        instructions.)
 
-        conda uninstall pydot
-        brew install graphviz
-        pip install pydot2
-        pip install pyparsing==1.5.7
+        If you are running consecution in an Jupyter notebook, you can display
+        an inline visualization of a pipeline by simply making the pipeline be
+        the final expression in a cell.
 
-        file_name: [str] the name of the visualization file
-        kind: [str] the type of visualization file to create
-        notebook: [bool]  Automatically load up the visualization in IPython Notebook
+        :type file_name: str
+        :param file_name: The name of the image file to generate
+
+        :type kind: str
+        :param kind: The kind of file to generate (png, pdf)
         """
         graph = self._build_pydot_graph()
 
