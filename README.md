@@ -498,19 +498,29 @@ out processing units to acheive different objectives with the same pipeline.
 
 TODO:  IN THIS EXAMPLE, MOVE THE PIPELINE BUILDER TO THE TOP
 ```python
-# node for left-justified logging
+# This function defines a pipeline that can use swappable processing nodes
+# We don't worry about how we are going to do logging or aggregating.
+# We just focus on how the nodes are connected
+def pipeline_factory(log_node, agg_node):
+    pipe = Pipeline(
+        log_node('extractor') | agg_node('aggregator') | log_node('result_logger')
+    )
+    return pipe
+
+
+# Now we define a node for left-justified logging
 class LeftLogNode(Node):
     def process(self, item):
         print('{: <15} processing {}'.format(self.name, item))
         self.push(item)
 
-# node for right-justified logging
+# And one for right-justified logging
 class RightLogNode(Node):
     def process(self, item):
         print('{: >15} processing {}'.format(self.name, item))
         self.push(item)
 
-# node for aggregating with sum
+# We can aggregate by summing
 class SumNode(Node):
     def begin(self):
         self.result = 0
@@ -521,7 +531,7 @@ class SumNode(Node):
     def end(self):
         self.push(self.result)
 
-# node for aggregating with product
+# Or we can aggregate by multiplying
 class ProdNode(Node):
     def begin(self):
         self.result = 1
@@ -532,17 +542,11 @@ class ProdNode(Node):
     def end(self):
         self.push(self.result)
 
-# define a pipeline that can use swappable processing nodes
-def pipeline_factory(log_node, agg_node):
-    pipe = Pipeline(
-        log_node('extractor') | agg_node('aggregator') | log_node('result_logger')
-    )
-    return pipe
 
-# plug nodes into the pipeline for left printing sums
+# Now we plug in nodes to create a pipeline that left-prints sums
 sum_pipeline = pipeline_factory(log_node=LeftLogNode, agg_node=SumNode)
 
-# plug nodes into the pipeline for right printing sums
+# And a different pipeline that right prints products
 prod_pipeline = pipeline_factory(log_node=RightLogNode, agg_node=ProdNode)
 
 print 'aggregate with sum, left justified\n' + '-'*40
