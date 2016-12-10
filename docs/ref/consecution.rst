@@ -7,11 +7,11 @@ Node
 ----
 Nodes are the fundamental processing unit in consecution.  A node is created by
 subclassing from the `consecution.Node` class.  You are free to declare as many
-attributes and methods on a node class as you see fit.  It is not recommended
-practice to override the constructor.  Any initialization you wish to perform on
-the node state can be accomplished by defining a `.begin()` method.  In the
-descriptions below, it is assumed that the nodes being discussed have been wired
-together into a pipeline, and are ready to comsume items.
+attributes and methods on a node class as you wish.  You should not override the
+constructor unless you really know what you're doing.  Instead, any
+initialization you wish to perform can be carried out in the `.begin()` method.
+In the descriptions below, it is assumed that the nodes being discussed have
+been wired together into a pipeline and are ready to consume items.
 
 See the 
 `Github README
@@ -108,6 +108,13 @@ Node API Documentation
 
 .. autoclass:: consecution.nodes.Node
     :members:
+
+GroupBy Node
+------------
+.. autoclass:: consecution.nodes.GroupByNode
+    :members:
+
+
 
 Pipeline
 -----------------

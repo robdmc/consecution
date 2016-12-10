@@ -494,9 +494,9 @@ class Node(object):
     def plot(
             self, file_name='pipeline', kind='png'):
         """
-        This method draws a pydot graph of your processing tree.  You must have
-        graphviz installed on your system for it to work properly.  (See install
-        instructions.)
+        This method draws a visualization of your processing graph.  You must
+        have graphviz installed on your system for it to work properly.  (See
+        install instructions.)
 
         If you are running consecution in an Jupyter notebook, you can display
         an inline visualization of a pipeline by simply making the pipeline be
