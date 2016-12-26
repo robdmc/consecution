@@ -16,7 +16,7 @@ def read(path, encoding='utf-8'):
 
 def version(path):
     """Obtain the packge version from a python file e.g. pkg/__init__.py
-    See <https://packaging.python.org/en/latest/single_source_version.html>. 
+    See <https://packaging.python.org/en/latest/single_source_version.html>.
     """
     version_file = read(path)
     version_match = re.search(r"""^__version__ = ['"]([^'"]*)['"]""",
