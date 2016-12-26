@@ -71,7 +71,7 @@ you can now simply type one of the following to see the pipeline visualized.
 # Create a pipeline.png file in your working directory
 pipe.plot()  
 
-# Interactively display the pipeline visualization in an IPython notebook.
+# Interactively display the pipeline visualization in an IPython notebook
 # by simply making the pipeline be the last evalated value in a cell
 pipe
 ```
