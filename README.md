@@ -21,11 +21,11 @@ Consecution makes it easy to build systems like this.
 Installation
 ---
 
-####Base Installation
-This will perform a fully functional installation of consecution.  Its only limitation will be that
-it won't be able to create graphical visualizations of your pipeline. Although not required, if you 
-want to create visualizations of your pipelines, you must have
-<a href="http://www.graphviz.org/">Graphviz</a> installed on your system.
+####Installation
+Consecution is a pure-python package that is simply installed with pip.  The only non-essential
+requirement is the 
+<a href="http://www.graphviz.org/">Graphviz</a> system package is only needed if you want to create
+graphical representations of your pipeline.
 
 <pre><code><strong>[~]$ pip install consecution</strong></code></pre>
 
