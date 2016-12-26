@@ -1,5 +1,7 @@
 Consecution
 ===
+[![Build Status](https://travis-ci.org/robdmc/consecution.svg?branch=add_docs)](https://travis-ci.org/robdmc/consecution)
+[![Coverage Status](https://coveralls.io/repos/github/robdmc/consecution/badge.svg?branch=add_docs)](https://coveralls.io/github/robdmc/consecution?branch=add_docs)
 
 Introduction
 ---
