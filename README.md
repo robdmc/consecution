@@ -27,6 +27,15 @@ graphical representations of your pipeline.
 
 <pre><code><strong>[~]$ pip install consecution</strong></code></pre>
 
+Docker
+---
+If you would like to try out consecution on docker, check out this repo and go into the
+`docker/` and do the following.
+
+* Build the consecution image: `docker_build.sh`
+* Start a container: `docker_run.sh`
+* Once in the container, run the example: `python simple_example.py`
+
 
 Quick Start
 ---
