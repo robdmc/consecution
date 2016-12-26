@@ -20,8 +20,6 @@ Consecution makes it easy to build systems like this.
 
 Installation
 ---
-
-####Installation
 Consecution is a pure-python package that is simply installed with pip.  The only non-essential
 requirement is the 
 <a href="http://www.graphviz.org/">Graphviz</a> system package is only needed if you want to create
