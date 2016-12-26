@@ -72,7 +72,8 @@ you can now simply type one of the following to see the pipeline visualized.
 pipe.plot()  
 
 # Interactively display the pipeline visualization in an IPython notebook.
-pipe.plot(notebook=True)
+# by simply making the pipeline be the last evalated value in a cell
+pipe
 ```
 The plot command should produce the following visualization.
 
