@@ -11,6 +11,7 @@ class N(Node):
         print(item, self.name)
         self.push(item)
 
+
 p = Pipeline(
     N('a') | [N('b'), N('c')] | N('d')
 )
