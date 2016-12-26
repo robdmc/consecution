@@ -22,7 +22,7 @@ Installation
 ---
 Consecution is a pure-python package that is simply installed with pip.  The only non-essential
 requirement is the 
-<a href="http://www.graphviz.org/">Graphviz</a> system package is only needed if you want to create
+<a href="http://www.graphviz.org/">Graphviz</a> system package, which is only needed if you want to create
 graphical representations of your pipeline.
 
 <pre><code><strong>[~]$ pip install consecution</strong></code></pre>
