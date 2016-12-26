@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-#TODO: make the consecution install in the docker file read from pip
+# TODO: make the consecution install in the docker file read from pip
 from __future__ import print_function
 
 from consecution import Node, Pipeline
