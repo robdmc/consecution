@@ -29,8 +29,8 @@ graphical representations of your pipeline.
 
 Docker
 ---
-If you would like to try out consecution on docker, check out this repo and go into the
-`docker/` and do the following.
+If you would like to try out consecution on docker, check out consecution from github and navigate to the
+`docker/` subdirectory.  From there, run the following.
 
 * Build the consecution image: `docker_build.sh`
 * Start a container: `docker_run.sh`
