@@ -128,9 +128,9 @@ coherent set of operations.
 
 Manually Connecting Nodes
 -------------------------
-The Node base class is equipped with an `.add_downstream(other_node)` method.
+The Node base class is equipped with an ``.add_downstream(other_node)`` method.
 This method provides detailed control over how nodes are wired together. It
-simply adds `other_node` as a downstream relation.
+simply adds ``other_node`` as a downstream relation.
 
 Here is an example of creating a pipeline with one top node that broadcasts
 items to two downstream nodes, and then collects their results into a single
@@ -170,12 +170,13 @@ a pipeline.  However, you may occasionally find that your desired topology is no
 easy to express in the DSL.  For these situations, consecution provides a
 lower-level escape hatch that allowes you to manually connect two nodes
 together.  These two levels of abstraction provide a very powerful interface for
-constructing quite complex pipelines.
+constructing complex pipelines.
 
 The DSL is inspired by the unix syntax for chaining together the inputs and
-outputs of different programs at the bash prompt.  You use the pipe symbol `|`
+outputs of different programs at the bash prompt.  You use the pipe symbol ``|``
 to connect nodes together.  These pipe operators will always return an object of
-one of the nodes in your connected topology.
+one of the nodes in your connected topology. Below is an example of creating a
+simple linear pipeline.
 
 .. code-block:: python
 
@@ -198,17 +199,76 @@ one of the nodes in your connected topology.
     pipe = Pipeline(node_object)
     pipe.consume(range(2))
 
+In order to create a directed acyclic graph (DAG) you need four basic
+constructs:
+
+* Send data from one node to a single other node
+* Broadcast data from one node to a set of other nodes
+* Route data from one node to one of a set of other nodes
+* Gather output from several nodes into one node.
+
+The DSL provides mechanisms for each of these constructs, and we will look at
+each in turn.
+
+Send data from single node to single node
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Use simple bash-like pipe syntax to send data from a single node to another
+node.
+
+.. code-block:: python
+
+    # Send data from one to to a single other node using bash-like piping.
+    node1 | node2
 
 
 
-there are topologies that are not easily captured in the mini-language.
-For those cases, consecution provides an escape hatch via a lower-level
-abstraction that allows you to explicitly wire two nodes together.
+Broadcast data from single node to multiple node
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Broadcasting is accomplished by piping to a list of nodes.  In the following
+example, ``node1`` will send each item it pushes to ``node2``, ``node3``, and
+``node4``.
 
-The 
+.. code-block:: python
+
+    # Broadcast to a set of nodes by piping to a list
+    node1 | [node2, node3, node4]
+
+Routing from one node to one of multiple nodes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Routing is accomplished by piping to a list that contains a single callable and
+any number of nodes.  The following example will send even numbers to
+``even_node`` and odd numbers to ``odd_node``.
+
+.. code-block:: python
+
+    # Define a node class
+    class N(Node):
+        def process(self, item):
+            self.push(item)
+
+    # Define a routing function.  It takes a single argument being the item
+    # you pushed.  It should return a string with the name of the node
+    # to which that item should be routed.
+    def route_func(item):
+        if item % 2 == 0:
+            return 'even_node'
+        else:
+            return 'odd_node'
+
+    # Pipe to a list of nodes and a callable to achieve routing
+    N('top_node') | [N('even_node'), N('odd_node'), route_func]
 
 
+Gather output from multiple nodes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Gathering output from a set of nodes is as simple as piping a list of nodes (and
+possibly a route function) to a single node.  In this example, the outputs of
+``node2``, ``node3``, and ``node4`` will all be sent to ``node5``.
 
+.. code-block:: python
+
+    # Broadcast to a set of nodes by piping to a list
+    node1 | [node2, node3, node4] | node5
 
 
 .. autoclass:: consecution.pipeline.Pipeline
