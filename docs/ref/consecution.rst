@@ -6,7 +6,7 @@ Code documentation
 Node
 ----
 Nodes are the fundamental processing unit in consecution.  A node is created by
-subclassing from the `consecution.Node` class.  You are free to declare as many
+inheriting from the `consecution.Node` class.  You are free to declare as many
 attributes and methods on a node class as you wish.  You should not override the
 constructor unless you really know what you're doing.  Instead, any
 initialization you wish to perform can be carried out in the `.begin()` method.
@@ -110,7 +110,7 @@ Node API Documentation
     :members:
 
 GroupBy Node
-------------
+~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: consecution.nodes.GroupByNode
     :members:
 
@@ -118,18 +118,98 @@ GroupBy Node
 
 Pipeline
 -----------------
-Here is stuff about pipelines.
+In consecution, nodes are wired into pipelines that consume python iterables.
+There are two levels of abstraction for wiring nodes together.  These
+abstractions are defined at the Node level.  Once the wiring is complete, you
+can pass any of the constituent nodes to the Pipeline constructor, which is
+responsible for examining your connections and coordinating the nodes into a
+coherent set of operations.
 
-Example:
+
+Manually Connecting Nodes
+-------------------------
+The Node base class is equipped with an `.add_downstream(other_node)` method.
+This method provides detailed control over how nodes are wired together. It
+simply adds `other_node` as a downstream relation.
+
+Here is an example of creating a pipeline with one top node that broadcasts
+items to two downstream nodes, and then collects their results into a single
+output node.
 
 .. code-block:: python
 
     from consecution import Pipeline, Node
+    from __future__ import print_function
 
-    class MyNode(Node):
-        pass
+    class SimpleNode(Node):
+        def process(self, item):
+            print('{} processing {}'.format(self.name, item))
+            self.push(item)
 
-    p = Pipeline(MyNode('a') | MyNode('b'))
+    top = SimpleNode('top')
+    left = SimpleNode('left')
+    right = SimpleNode('right')
+    output = SimpleNode('output')
+
+    top.add_downstream(left)
+    top.add_downstream(right)
+
+    left.add_downstream(output)
+    right.add_downstream(output)
+
+    pipe = Pipeline(top)
+
+    pipe.consume(range(2))
+
+
+Node Connection Mini-language
+-----------------------------
+Consecution provides a concise domain-specific-language (DSL) for creating
+directed acyclic graphs.  This is the preferred method for connecting nodes into
+a pipeline.  However, you may occasionally find that your desired topology is not
+easy to express in the DSL.  For these situations, consecution provides a
+lower-level escape hatch that allowes you to manually connect two nodes
+together.  These two levels of abstraction provide a very powerful interface for
+constructing quite complex pipelines.
+
+The DSL is inspired by the unix syntax for chaining together the inputs and
+outputs of different programs at the bash prompt.  You use the pipe symbol `|`
+to connect nodes together.  These pipe operators will always return an object of
+one of the nodes in your connected topology.
+
+.. code-block:: python
+
+    from consecution import Pipeline, Node
+    from __future__ import print_function
+
+    class SimpleNode(Node):
+        def process(self, item):
+            print('{} processing {}'.format(self.name, item))
+            self.push(item)
+
+    left = SimpleNode('left')
+    middle = SimpleNode('middle')
+    right = SimpleNode('right')
+
+    # wire nodes together with bash-like pipe operator
+    node_object = left | middle | right
+
+    # You can now pass the node object into a pipeline constructor
+    pipe = Pipeline(node_object)
+    pipe.consume(range(2))
+
+
+
+
+there are topologies that are not easily captured in the mini-language.
+For those cases, consecution provides an escape hatch via a lower-level
+abstraction that allows you to explicitly wire two nodes together.
+
+The 
+
+
+
+
 
 .. autoclass:: consecution.pipeline.Pipeline
     :members:
