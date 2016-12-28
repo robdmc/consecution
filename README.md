@@ -713,9 +713,8 @@ def by_age(item):
 # pipeline.
 pipe = pipe_factory(MakePerson, Sum, by_gender, by_age)
 
-# We can now visualize pipeline.  This syntax assumes you are running this code
-# in a Jupyter notebook where the visualization will be placed inline.
-pipe.plot(notebook=True)
+# We can now visualize pipeline.
+pipe.plot()
 
 # Now we feed our pipeline with rows from the csv file
 with open('sample_data.csv') as f:
