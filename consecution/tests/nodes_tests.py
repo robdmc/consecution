@@ -54,6 +54,20 @@ class NodeUnitTests(TestCase):
         self.assertTrue(a < b)
         self.assertFalse(b < a)
 
+    def test_bad_flattening(self):
+        a = Node('a')
+        with self.assertRaises(ValueError):
+            a | 7
+
+    #def test_remove_non_existent_node(self):
+    #    a = Node('a')
+    #    b = Node('b')
+    #    c = Node('c')
+    #    a.add_downstream(b)
+    #    a.remove_downstream(c)
+
+
+
     @patch(
         'consecution.nodes.Node._build_pydot_graph', lambda a: FakeDigraph())
     def test_graphviz_not_installed(self):

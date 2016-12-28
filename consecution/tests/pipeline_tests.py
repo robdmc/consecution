@@ -94,9 +94,9 @@ class GlobalStateUnitTests(TestCase):
             print(repr(g))
 
         self.assertTrue(
-            'GlobalState attributes: [\'custom_name\']' in catcher1.txt)
+            'GlobalState(\'custom_name\')' in catcher1.txt)
         self.assertTrue(
-            'GlobalState attributes: [\'custom_name\']' in catcher2.txt)
+            'GlobalState(\'custom_name\')' in catcher2.txt)
 
 
 class OrOpTests(TestCase):

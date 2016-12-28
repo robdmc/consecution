@@ -91,6 +91,12 @@ class Node(object):
                 elif hasattr(el, '__iter__'):
                     nodes.extend(self._get_flattened_list(el))
             return nodes
+        else:
+            msg = (
+                'Don\'t know what to do with {}.  It\'s not a node, and it\'s '
+                'not iterable.'
+            ).format(repr(obj))
+            raise ValueError(msg)
 
     def _get_exposed_slots(self, obj, pointing):
         nodes = set()
@@ -454,9 +460,8 @@ class Node(object):
         # remove this connection from the pydot kwargs list
         new_kwargs_list = []
         for kwargs in self._pydot_edge_kwarg_list:
-            if kwargs['tail_name'] == self.name:
-                if kwargs['head_name'] == other.name:
-                    continue
+            if kwargs['head_name'] == other.name:
+                continue
             new_kwargs_list.append(kwargs)
         self._pydot_edge_kwarg_list = new_kwargs_list
 
