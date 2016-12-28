@@ -11,7 +11,7 @@ before_script:
   - flake8 .
 script:
   - nosetests
-#  - coverage report --fail-under=100
+  - coverage report --fail-under=100
 after_success:
     - coveralls
 notifications: 
