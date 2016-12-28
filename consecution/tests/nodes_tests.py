@@ -283,13 +283,9 @@ class ExplicitWiringTests(TestCase):
             node.add_downstream(other)
 
     def test_write(self):
-        # only run this test if dot is installed
-        #p = subprocess.Popen(
-        #    ['bash', '-c', 'which dot'], stdout=subprocess.PIPE)
-        #p.wait()
-        #result = p.stdout.read().decode("utf-8") 
-        #if 'dot' in result:
-        if dot_installed():
+        # don't run coverage on this because won't test travis with
+        # both dot installed and not installed.
+        if dot_installed(): # pragma: no cover 
             self.do_wiring()
             out_file = os.path.join(self.temp_dir, 'out.png')
             self.top_node.plot(out_file)
