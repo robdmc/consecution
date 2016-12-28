@@ -759,3 +759,10 @@ through a consecution pipeline makes it very easy to encapsulate any analysis
 into a well-defined, repeatable process where each node manipulates a dataframe
 in its prescribed way. Adopting this structure in analysis projects will
 undoubtedly ease the transition from analysis/research into production.
+
+___
+Other projects by robdmc.
+* [Pandashells](https://github.com/robdmc/pandashells) Pandas at the bash command line
+* [Consecution](https://github.com/robdmc/consecution) Pipeline Abstraction for Python
+* [Behold](https://github.com/robdmc/behold) Helping debug large Python projects
+
