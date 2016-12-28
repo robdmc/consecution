@@ -763,6 +763,6 @@ undoubtedly ease the transition from analysis/research into production.
 ___
 Projects by [robdmc](https://www.linkedin.com/in/robdecarvalho).
 * [Pandashells](https://github.com/robdmc/pandashells) Pandas at the bash command line
-* [Consecution](https://github.com/robdmc/consecution) Pipeline Abstraction for Python
+* [Consecution](https://github.com/robdmc/consecution) Pipeline abstraction for Python
 * [Behold](https://github.com/robdmc/behold) Helping debug large Python projects
 
