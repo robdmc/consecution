@@ -5,6 +5,27 @@ from consecution.utils import Clock
 
 
 class Node(object):
+    """
+    :type name: str
+    :param str: The name of this node.  Must be unique within a pipeline.
+
+    :type kwargs:  keyword args
+    :param kwargs: Any additional keyword args are assigned as attributes
+                   on the node.
+
+    You create nodes by inheriting from this class.  You will be required to
+    implement a `.process()` on your class.  You can call the `.push()` method
+    from anywhere in your class implementation except from within the
+    `.begin()` method.
+
+    Note that although this documentation refers to "the `.push` method",
+    `push` is actually  a callable attribute assigned when nodes are placed
+    into pipelines.
+
+    Its signature is `.push(item)`, where `item` can be anything you want pushed
+    to nodes connected to the downstream side of the node.
+
+    """
     def __init__(self, name, **kwargs):
         # assign any user-defined attributes
         for k, v in kwargs.items():
@@ -70,6 +91,12 @@ class Node(object):
                 elif hasattr(el, '__iter__'):
                     nodes.extend(self._get_flattened_list(el))
             return nodes
+        else:
+            msg = (
+                'Don\'t know what to do with {}.  It\'s not a node, and it\'s '
+                'not iterable.'
+            ).format(repr(obj))
+            raise ValueError(msg)
 
     def _get_exposed_slots(self, obj, pointing):
         nodes = set()
@@ -126,7 +153,8 @@ class Node(object):
     @property
     def top_node(self):
         """
-        Use a stack to emulate recursive search for top node.
+        This attribute always holds the top-most node in the node graph.
+        Consecution only allows one top node.
         """
         root_nodes = self.root_nodes
         if len(root_nodes) > 1:
@@ -139,28 +167,32 @@ class Node(object):
     @property
     def terminal_node_set(self):
         """
-        Find all terminal nodes rooted in this node
+        This attribute holds a set of all bottom nodes in the node graph.
         """
         return {
-            node for node in self.depth_first_search('down')
+            node for node in self.depth_first_walk('down')
             if len(node._downstream_nodes) == 0
         }
 
     @property
     def initial_node_set(self):
         """
-        Find all initial nodes rooted at this node
+        When piecing together fragments of a graph, you can temporarily have
+        connected nodes with multiple "top-nodes."  This method returns this
+        set of nodes.  Node that consecution can only make pipelines from
+        graphs having a single top node.
         """
-        self.depth_first_search('up')
+        self.depth_first_walk('up')
         return {
-            node for node in self.depth_first_search('up')
+            node for node in self.depth_first_walk('up')
             if len(node._upstream_nodes) == 0
         }
 
     @property
     def root_nodes(self):
         """
-        Find root nodes of entire connected network
+        This attribute holds a list of all nodes that do not have any upstream
+        nodes attached.
         """
         return [
             node for node in self.all_nodes
@@ -169,11 +201,20 @@ class Node(object):
 
     @property
     def all_nodes(self):
-        return self.depth_first_search('both')
+        """
+        This attribute contains a set of all nodes in the graph.
+        """
+        return self.depth_first_walk('both')
 
     def log(self, what):
         """
-        TODO: document this
+        Calling this method on a node will turn on its logging feature.  This
+        means that the node will print logged items to the console.  You can
+        choose whether to log the inputs or outputs of a node.
+
+        :type name: what
+        :param what: One of 'input' or 'output' indicating whther you want to
+                     log the input or output of this node.
         """
         allowed = ['input', 'output']
         if what not in allowed:
@@ -196,9 +237,13 @@ class Node(object):
                 self.name, downstreams).replace('\'', '')
 
     def top_down_make_repr(self):
+        """
+        You should never need to use this method.  It iterates through the node
+        graph in top-down order making a repr string for each node.
+        """
         if not hasattr(self, 'pipeline'):
             raise ValueError(
-                'top_down_print can only be called for nodes in a pipeline')
+                'top_down_make_repr can only be called for nodes in a pipeline')
 
         self.pipeline._longest_node_name_len_ = max(
             len(n.name) for n in self.all_nodes)
@@ -207,9 +252,14 @@ class Node(object):
 
     def top_down_call(self, method_name):
         """
-        This recursively calls a method on self and all downstreams. It is used
-        to make sure begin() and end() are not called before all their
-        upstream counterparts.
+        This utility method traverses the graph in top-down order and invokes
+        the named method on every node it encounters. It is used internally
+        to make sure the `.begin()` and `.end()` methods are not called before
+        their upstream counterparts.
+
+        :type method_name: str
+        :param method_name: The name of the method you would like to call in
+                            top-down order.
         """
         # record the number of upstreams this node has
         num_upstreams = len(self._upstream_nodes)
@@ -235,33 +285,65 @@ class Node(object):
         else:
             self._num_top_down_calls += 1
 
-    def depth_first_search(self, direction='both', as_ordered_list=False):
+    def depth_first_walk(self, direction='both', as_ordered_list=False):
         """
-        This is a depth first search using a stack to emulate recursion
-        see good explanation at
+        This method walks the graph of connected nodes in depth-first
+        order.  It uses a stack to emulate recursion. See good explanation at
         https://jeremykun.com/2013/01/22/depth-and-breadth-first-search/
+
+        :type direction: str
+        :param direction: one of 'up', 'down' or 'both' specifying the direction
+                          to walk.
+        :type as_ordered_list: Bool
+        :param as_ordered_list: If set to true, returns the walked nodes as
+                                an ordered list instead of an unordered set.
+
+        :rtype: list or set
+        :return: An iterable of the discovered nodes.
         """
-        return self.search(
+        return self.walk(
             direction=direction, how='depth_first',
             as_ordered_list=as_ordered_list)
 
-    def breadth_first_search(self, direction='both', as_ordered_list=False):
+    def breadth_first_walk(self, direction='both', as_ordered_list=False):
         """
-        This is a depth first search using a stack to emulate recursion
-        see good explanation at
+        This method walks the graph of connected nodes in breadth-first
+        order.  It uses a stack to emulate recursion. See good explanation at
         https://jeremykun.com/2013/01/22/depth-and-breadth-first-search/
+
+        :type direction: str
+        :param direction: one of 'up', 'down' or 'both' specifying the direction
+                          to walk.
+        :type as_ordered_list: Bool
+        :param as_ordered_list: If set to true, returns the walked nodes as
+                                an ordered list instead of an unordered set.
+
+        :rtype: list or set
+        :return: An iterable of the discovered nodes.
         """
-        return self.search(
+        return self.walk(
             direction=direction, how='breadth_first',
             as_ordered_list=as_ordered_list)
 
-    def search(
+    def walk(
             self, direction='both', how='breadth_first', as_ordered_list=False):
 
         """
-        This is a depth first search using a stack to emulate recursion
-        see good explanation at
-        https://jeremykun.com/2013/01/22/depth-and-breadth-first-search/
+        This is the core algorithm for walking a graph in specified order.  It
+        is used by the `breadth_first_walk` and `depth_first_walk` methods.
+
+        :type how: str
+        :param how: one of 'breadth_first' or 'depth_first'
+
+        :type direction: str
+        :param direction: one of 'up', 'down' or 'both' specifying the direction
+                          to walk.
+        :type as_ordered_list: Bool
+        :param as_ordered_list: If set to true, returns the walked nodes as
+                                an ordered list instead of an unordered set.
+
+        :rtype: list or set
+        :return: An iterable of the discovered nodes.
         """
         if how not in {'depth_first', 'breadth_first'}:
             raise ValueError(
@@ -328,8 +410,8 @@ class Node(object):
         return
 
     def _check_for_cycles(self):
-        self_and_upstreams = self.depth_first_search('up')
-        downstreams = self.depth_first_search('down') - {self}
+        self_and_upstreams = self.depth_first_walk('up')
+        downstreams = self.depth_first_walk('down') - {self}
         common_nodes = self_and_upstreams.intersection(downstreams)
         if common_nodes:
             raise ValueError('\n\nYour graph is not acyclic.  It has loops.')
@@ -340,6 +422,13 @@ class Node(object):
             raise ValueError('Trying to connect a non-node type')
 
     def add_downstream(self, other):
+        """
+        You will probably use this method quite a bit.  It is used to manually
+        attach a downstream node.
+
+        :type other: consecution.Node
+        :param other: An instance of the node you want to attach
+        """
         self._validate_node(other)
         self._downstream_nodes.append(other)
         other._upstream_nodes.append(self)
@@ -353,6 +442,13 @@ class Node(object):
             dict(tail_name=self.name, head_name=other.name))
 
     def remove_downstream(self, other):
+        """
+        This method removes the given node from being attached as a downstream
+        node.
+
+        :type other: consecution.Node
+        :param other: An instance of the node you want to remove
+        """
         # remove self from the other's upstreams
         other._upstream_nodes = [
             n for n in other._upstream_nodes if n.name != self.name]
@@ -364,9 +460,8 @@ class Node(object):
         # remove this connection from the pydot kwargs list
         new_kwargs_list = []
         for kwargs in self._pydot_edge_kwarg_list:
-            if kwargs['tail_name'] == self.name:
-                if kwargs['head_name'] == other.name:
-                    continue
+            if kwargs['head_name'] == other.name:
+                continue
             new_kwargs_list.append(kwargs)
         self._pydot_edge_kwarg_list = new_kwargs_list
 
@@ -404,22 +499,19 @@ class Node(object):
     def plot(
             self, file_name='pipeline', kind='png'):
         """
-        This method draws a pydot graph of your processing tree.  It does so using the
-        pydot library which is based on the graphviz library.  You should only ever need
-        to do this for developement/debug, so the configuration required to do this is not
-        needed in production.  Since it doesn't make sense to call this method in production,
-        the imports it requires are loaded within the method itself.  That way we only
-        need the dependencies on a dev machine.  Pydot is a bit finicky about versioning, so
-        this is what works as of  3/25/16.
-        MacOS
-          conda uninstall pydot
-          brew install graphviz
-          pip install pydot2
-          pip install pyparsing==1.5.7
+        This method draws a visualization of your processing graph.  You must
+        have graphviz installed on your system for it to work properly.  (See
+        install instructions.)
 
-        file_name: [str] the name of the visualization file
-        kind: [str] the type of visualization file to create
-        notebook: [bool]  Automatically load up the visualization in IPython Notebook
+        If you are running consecution in an Jupyter notebook, you can display
+        an inline visualization of a pipeline by simply making the pipeline be
+        the final expression in a cell.
+
+        :type file_name: str
+        :param file_name: The name of the image file to generate
+
+        :type kind: str
+        :param kind: The kind of file to generate (png, pdf)
         """
         graph = self._build_pydot_graph()
 
@@ -453,6 +545,12 @@ class Node(object):
             raise
 
     def process(self, item):
+        """
+        :type item: object
+        :param item: The item this node should process
+
+        You must override this method with your own logic.
+        """
         raise NotImplementedError(
             (
                 'Error in node named {}\n'

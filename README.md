@@ -1,5 +1,7 @@
 Consecution
 ===
+[![Build Status](https://travis-ci.org/robdmc/consecution.svg?branch=add_docs)](https://travis-ci.org/robdmc/consecution)
+[![Coverage Status](https://coveralls.io/repos/github/robdmc/consecution/badge.svg?branch=add_docs)](https://coveralls.io/github/robdmc/consecution?branch=add_docs)
 
 Introduction
 ---
@@ -18,17 +20,22 @@ Consecution makes it easy to build systems like this.
 
 Installation
 ---
+Consecution is a pure-python package that is simply installed with pip.  The only non-essential
+requirement is the 
+<a href="http://www.graphviz.org/">Graphviz</a> system package, which is only needed if you want to create
+graphical representations of your pipeline.
 
-####Base Installation (no dependencies required)
-This will perform a fully functional installation of consecution.  Its only limitation will be that
-it won't be able to create graphical visualizations of your pipeline.
 <pre><code><strong>[~]$ pip install consecution</strong></code></pre>
 
-####Installation with Pipeline Visualization
-You must have <a href="http://www.graphviz.org/">Graphviz</a> already installed on your system
-to install consecution with the following option.  You will then be able to create nice pipeline
-visualizations.
-<pre><code><strong>[~]$ pip install consecution[full]</strong></code></pre>
+Docker
+---
+If you would like to try out consecution on docker, check out consecution from github and navigate to the
+`docker/` subdirectory.  From there, run the following.
+
+* Build the consecution image: `docker_build.sh`
+* Start a container: `docker_run.sh`
+* Once in the container, run the example: `python simple_example.py`
+
 
 Quick Start
 ---
@@ -73,8 +80,9 @@ you can now simply type one of the following to see the pipeline visualized.
 # Create a pipeline.png file in your working directory
 pipe.plot()  
 
-# Interactively display the pipeline visualization in an IPython notebook.
-pipe.plot(notebook=True)
+# Interactively display the pipeline visualization in an IPython notebook
+# by simply making the pipeline be the last evalated value in a cell
+pipe
 ```
 The plot command should produce the following visualization.
 
@@ -448,7 +456,7 @@ extractor processing 3
 extractor processing 4
    loader processing 4
 extractor processing 5
-   loader processing 50
+   loader processing 50  #TODO:  This doesn't look right
 ```
 
 ### Group By
@@ -495,20 +503,31 @@ exploited to create flexible and reusable solutions.  Basically, you specify the
 connectivity you want to use in solving your problem, and then plug in the
 processing units later.  Breaking the problem up in this way allows you to swap
 out processing units to acheive different objectives with the same pipeline.
+
 ```python
-# node for left-justified logging
+# This function defines a pipeline that can use swappable processing nodes.
+# We don't worry about how we are going to do logging or aggregating.
+# We just focus on how the nodes are connected.
+def pipeline_factory(log_node, agg_node):
+    pipe = Pipeline(
+        log_node('extractor') | agg_node('aggregator') | log_node('result_logger')
+    )
+    return pipe
+
+
+# Now we define a node for left-justified logging
 class LeftLogNode(Node):
     def process(self, item):
         print('{: <15} processing {}'.format(self.name, item))
         self.push(item)
 
-# node for right-justified logging
+# And one for right-justified logging
 class RightLogNode(Node):
     def process(self, item):
         print('{: >15} processing {}'.format(self.name, item))
         self.push(item)
 
-# node for aggregating with sum
+# We can aggregate by summing
 class SumNode(Node):
     def begin(self):
         self.result = 0
@@ -519,7 +538,7 @@ class SumNode(Node):
     def end(self):
         self.push(self.result)
 
-# node for aggregating with product
+# Or we can aggregate by multiplying
 class ProdNode(Node):
     def begin(self):
         self.result = 1
@@ -530,17 +549,11 @@ class ProdNode(Node):
     def end(self):
         self.push(self.result)
 
-# define a pipeline that can use swappable processing nodes
-def pipeline_factory(log_node, agg_node):
-    pipe = Pipeline(
-        log_node('extractor') | agg_node('aggregator') | log_node('result_logger')
-    )
-    return pipe
 
-# plug nodes into the pipeline for left printing sums
+# Now we plug in nodes to create a pipeline that left-prints sums
 sum_pipeline = pipeline_factory(log_node=LeftLogNode, agg_node=SumNode)
 
-# plug nodes into the pipeline for right printing sums
+# And a different pipeline that right prints products
 prod_pipeline = pipeline_factory(log_node=RightLogNode, agg_node=ProdNode)
 
 print 'aggregate with sum, left justified\n' + '-'*40
@@ -571,7 +584,6 @@ aggregate with product, right justified
 # Aggregation Example
 We end with a full-blown example of using a pipeline to aggregate data from a
 csv file.  The data is contained in 
-(FIX THIS LINK AFTER BRANCH MERGE)
 <a href="https://raw.githubusercontent.com/robdmc/consecution/master/sample_data.csv">
 a csv file </a> that looks like this.
 
@@ -617,10 +629,13 @@ def pipe_factory(Extractor, Agg, gender_router, age_router):
     # global_state['my_attribute'].  Furthermore, GlobalState objects can be
     # instantiated with initialized attributes using key-word arguments as shown
     # here.
-    global_state=GlobalState(segment_totals={})
+    global_state = GlobalState(segment_totals={})
 
+    # Notice, we haven't even defined the behavior of these nodes yet.  They
+    # will be defined later and are, for now, just passed into the factory
+    # function as arguments while we focus on getting the topology right.
     pipe = Pipeline(
-        Extractor('make_person') | 
+        Extractor('make_person') |
         [
             gender_router,
             (Agg('male') | [age_router, Agg('male_child'), Agg('male_adult')]),
@@ -667,17 +682,17 @@ class Sum(Node):
     def begin(self):
         # initialize the node-local sum to zero
         self.total = 0
-    
+
     def process(self, item):
         # increment the node-local total and push the item down stream
         self.total += item.spent
         self.push(item)
-        
+
     def end(self):
         # when pipeline is done, update global state with sum
         self.global_state.segment_totals[self.name] = round(self.total, 2)
 
-        
+
 # This function routes tuples based on their associated gender
 def by_gender(item):
     return '{}'.format(item.gender)
@@ -725,11 +740,18 @@ And this is the result of running the pipeline with the sample csv file.
 As illustrated in the <a
 href="https://github.com/robdmc/consecution/blob/master/pandashells.md">
 Pandashells</a> example, this aggregation is actually much more simple to
-implement in Pandas.  However, there is an important caveat.  The Pandas
-solution must load the entire csv file into memory at once.  If you look at the
-pipeline solution, you will notice that each node simply increments its local
-sum and passes the data downstream.  At no point is the data completely loaded
-into memory.  Although the Pandas code runs much faster due to the highly
-optimized vectorized math it employes, the pipeline solution can process
-arbitrarily large csv files with a very small memory footprint.
+implement in Pandas.  However, there are a couple of important caveats.
 
+The Pandas solution must load the entire csv file into memory at once.  If you
+look at the pipeline solution, you will notice that each node simply increments
+its local sum and passes the data downstream.  At no point is the data
+completely loaded into memory.  Although the Pandas code runs much faster due to
+the highly optimized vectorized math it employes, the pipeline solution can
+process arbitrarily large csv files with a very small memory footprint.
+
+Perhaps the most exciting aspect of consecution is its ability to create
+repeatable and testable data analysis pipelines.  Passing Pandas Dataframes
+through a consecution pipeline makes it very easy to encapsulate any analysis
+into a well-defined, repeatable process where each node manipulates a dataframe
+in its prescribed way. Adopting this structure in analysis projects will
+undoubtedly ease the transition from analysis/research into production.

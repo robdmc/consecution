@@ -54,6 +54,20 @@ class NodeUnitTests(TestCase):
         self.assertTrue(a < b)
         self.assertFalse(b < a)
 
+    def test_bad_flattening(self):
+        a = Node('a')
+        with self.assertRaises(ValueError):
+            a | 7
+
+    #def test_remove_non_existent_node(self):
+    #    a = Node('a')
+    #    b = Node('b')
+    #    c = Node('c')
+    #    a.add_downstream(b)
+    #    a.remove_downstream(c)
+
+
+
     @patch(
         'consecution.nodes.Node._build_pydot_graph', lambda a: FakeDigraph())
     def test_graphviz_not_installed(self):
@@ -269,13 +283,9 @@ class ExplicitWiringTests(TestCase):
             node.add_downstream(other)
 
     def test_write(self):
-        # only run this test if dot is installed
-        #p = subprocess.Popen(
-        #    ['bash', '-c', 'which dot'], stdout=subprocess.PIPE)
-        #p.wait()
-        #result = p.stdout.read().decode("utf-8") 
-        #if 'dot' in result:
-        if dot_installed():
+        # don't run coverage on this because won't test travis with
+        # both dot installed and not installed.
+        if dot_installed(): # pragma: no cover 
             self.do_wiring()
             out_file = os.path.join(self.temp_dir, 'out.png')
             self.top_node.plot(out_file)
@@ -290,12 +300,12 @@ class ExplicitWiringTests(TestCase):
     def test_bad_search_direction(self):
         self.do_wiring()
         with self.assertRaises(ValueError):
-            self.top_node.breadth_first_search(direction='bad')
+            self.top_node.breadth_first_walk(direction='bad')
 
     def test_bad_search_method(self):
         self.do_wiring()
         with self.assertRaises(ValueError):
-            self.top_node.search(how='bad')
+            self.top_node.walk(how='bad')
 
 
 class DSLWiringTests(ExplicitWiringTests):
@@ -359,7 +369,7 @@ class BreadthFirstSearchTests(TestCase):
             return 0
 
         a | [b, c] | [d, e, f, silly_router] | [h, i]
-        nodes =  a.top_node.breadth_first_search(
+        nodes =  a.top_node.breadth_first_walk(
             direction='down', as_ordered_list=True)
         level5 = {nodes.pop() for nn in range(2)}
         level4 = {nodes.pop() for nn in range(3)}
@@ -387,7 +397,7 @@ class BreadthFirstSearchTests(TestCase):
             return 0
 
         a | [b, c] | [d, e, f, silly_router] | h
-        nodes =  h.breadth_first_search(direction='up', as_ordered_list=True)
+        nodes =  h.breadth_first_walk(direction='up', as_ordered_list=True)
         nodes = nodes[::-1]
         level5 = {nodes.pop() for nn in range(1)}
         level4 = {nodes.pop() for nn in range(3)}
