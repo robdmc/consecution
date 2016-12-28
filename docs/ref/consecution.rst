@@ -1,6 +1,6 @@
 .. _ref-consecution:
 
-Code documentation
+API documentation
 ==================
 
 Node
