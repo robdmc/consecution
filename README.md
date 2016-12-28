@@ -761,7 +761,7 @@ in its prescribed way. Adopting this structure in analysis projects will
 undoubtedly ease the transition from analysis/research into production.
 
 ___
-Other projects by robdmc.
+Projects by robdmc.
 * [Pandashells](https://github.com/robdmc/pandashells) Pandas at the bash command line
 * [Consecution](https://github.com/robdmc/consecution) Pipeline Abstraction for Python
 * [Behold](https://github.com/robdmc/behold) Helping debug large Python projects
