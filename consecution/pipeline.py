@@ -1,6 +1,7 @@
 import sys
 from consecution.nodes import GroupByNode
 
+
 class GlobalState(object):
     """
     GlobalState is a simple container class that sets its attributes from
@@ -40,27 +41,6 @@ class GlobalState(object):
 
     def __getitem__(_item_self, key):
         return getattr(_item_self, key)
-
-
-#class GlobalState(object):
-#    """
-#    A simple class whos objects can absorb arbitrary user-defined attributes.
-#    """
-#    def __init__(self, **kwargs):
-#        for key, val in kwargs.items():
-#            self[key] = val
-#
-#    def __str__(self):
-#        return 'GlobalState attributes: ' + str(sorted(vars(self).keys()))
-#
-#    def __repr__(self):
-#        return self.__str__()
-#
-#    def __setitem__(self, key, value):
-#        setattr(self, key, value)
-#
-#    def __getitem__(self, key):
-#        return getattr(self, key)
 
 
 class Pipeline(object):
