@@ -39,6 +39,10 @@ If you would like to try out consecution on docker, check out consecution from g
 
 Quick Start
 ---
+What follows is a quick tour of consecution.  See the <a
+href="http://consecution.readthedocs.io/en/latest/">API documentation</a> for
+more detailed information.
+
 ### Nodes
 Consecution works by wiring together nodes.  You create nodes by inheriting from the
 `consecution.Node` class.  Every node must define a `.process()` method.  This method
