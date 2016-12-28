@@ -265,6 +265,15 @@ class ReplacementTests(TestBase):
         self.assertEqual(printer.txt.count('1'), 2)
         self.assertEqual(printer.txt.count('20'), 2)
 
+    def test_replace_no_router(self):
+        a = TestNode('a')
+        b = TestNode('b')
+        pipe = Pipeline(a | b)
+        pipe['b'] = TestNode('b')
+        with print_catcher() as catcher:
+            print(pipe)
+        self.assertTrue('a | b' in catcher.txt)
+
 
 class ConsumingTests(TestBase):
     def test_even_odd(self):
