@@ -116,16 +116,6 @@ GroupBy Node
 
 
 
-Pipeline
------------------
-In consecution, nodes are wired into pipelines that consume python iterables.
-There are two levels of abstraction for wiring nodes together.  These
-abstractions are defined at the Node level.  Once the wiring is complete, you
-can pass any of the constituent nodes to the Pipeline constructor, which is
-responsible for examining your connections and coordinating the nodes into a
-coherent set of operations.
-
-
 Manually Connecting Nodes
 -------------------------
 The Node base class is equipped with an ``.add_downstream(other_node)`` method.
@@ -269,6 +259,42 @@ possibly a route function) to a single node.  In this example, the outputs of
 
     # Broadcast to a set of nodes by piping to a list
     node1 | [node2, node3, node4] | node5
+
+
+Pipeline
+-----------------
+Once nodes are wired together, they need to be encapsulated into a pipeline
+before they can operate on data.  This is done by passing any node in the
+network as the argument to the ``Pipeline`` constructor.  On construction, the
+pipeline will ensure you have a valid processing graph and will execute
+initialization code to ensure that the nodes are efficiently connected.
+Immediately after construction, the pipeline is ready to consume data.
+
+When the ``.consume(iterable)`` method is called a sequence of events occur in
+exactly this order.
+
+#. The ``.begin()`` method on the pipeline object is called.  You can override
+   this method to perform any task you'd like.
+
+#. The ``.begin()`` methods of all nodes in the network are called.  They are
+   called in top-down order.  What this means is that the ``.begin()`` method of
+   a node is guaranteed to not be called until the ``.begin()`` methods of all
+   its ancestors have been called.
+
+#. Items are read from the iterable argument supplied to the ``.consume()``
+   method.  These are fed through the topology of the processing graph one by
+   one.  Each item is completely processed by the graph before the next one is
+   lifted off the iterable.
+
+#. The ``.end()`` methods of all nodes are called in top-down order.
+
+#. The ``.end()`` method of the pipeline is called.
+
+
+
+
+
+
 
 
 .. autoclass:: consecution.pipeline.Pipeline

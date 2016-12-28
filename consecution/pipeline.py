@@ -137,24 +137,45 @@ class Pipeline(object):
         if replacement_node.name == self.top_node.name:
             self.top_node = replacement_node
 
-    def __getattribute__(self, name):
-        """
-        This should trap for the begin() and end() method calls and install
-        pre/post hooks for when they are called either on the pipeline
-        class or on any class derived from it.
-        """
-        trapped_names = {
-            'begin',
-            'end',
-            'reset'
-        }
-        if name in trapped_names:
-            def wrapper():
-                super(Pipeline, self).__getattribute__(name)()
-                return self.__class__.__dict__['_{}'.format(name)](self)
-            return wrapper
-        else:
-            return super(Pipeline, self).__getattribute__(name)
+    #def __getattribute__(self, name):
+    #    """
+    #    This should trap for the begin() and end() method calls and install
+    #    pre/post hooks for when they are called either on the pipeline
+    #    class or on any class derived from it.
+    #    """
+    #    trapped_names = {
+    #        'begin',
+    #        'end',
+    #        'reset'
+    #    }
+    #    if name in trapped_names:
+    #        def wrapper():
+    #            super(Pipeline, self).__getattribute__(name)()
+    #            _name = '_{}'.format(name)
+    #            return super(Pipeline, self).__getattribute__(_name)
+    #            #return self.__class__.__dict__['_{}'.format(name)](self)
+    #        return wrapper
+    #    else:
+    #        return super(Pipeline, self).__getattribute__(name)
+
+    #def __getattribute__(self, name):
+    #    """
+    #    This should trap for the begin() and end() method calls and install
+    #    pre/post hooks for when they are called either on the pipeline
+    #    class or on any class derived from it.
+    #    """
+    #    trapped_names = {
+    #        'begin',
+    #        'end',
+    #        'reset'
+    #    }
+    #    if name in trapped_names:
+    #        def wrapper():
+    #            super(Pipeline, self).__getattribute__(name)()
+    #            return self.__class__.__dict__['_{}'.format(name)](self)
+    #        return wrapper
+    #    else:
+    #        return super(Pipeline, self).__getattribute__(name)
 
     # def __getattribute__orig(self, name):
     #     """
@@ -179,6 +200,30 @@ class Pipeline(object):
     #         return wrapper
     #     else:
     #         return super(Pipeline, self).__getattribute__(name)
+
+    def __getattribute__(self, name):
+        """
+        This should trap for the begin() and end() method calls and install
+        pre/post hooks for when they are called either on the pipeline
+        class or on any class derived from it.
+        """
+        if name == 'begin':
+            def wrapper():
+                super(Pipeline, self).__getattribute__(name)()
+                self._begin()
+            return wrapper
+        elif name == 'end':
+            def wrapper():
+                self._end()
+                return super(Pipeline, self).__getattribute__(name)()
+            return wrapper
+        elif name == 'reset':
+            def wrapper():
+                self._reset()
+                return super(Pipeline, self).__getattribute__(name)()
+            return wrapper
+        else:
+            return super(Pipeline, self).__getattribute__(name)
 
     def begin(self):
         """
