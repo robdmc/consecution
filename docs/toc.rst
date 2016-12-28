@@ -6,5 +6,3 @@ Table of Contents
 
    index
    ref/consecution
-   contributing
-   release_notes

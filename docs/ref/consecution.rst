@@ -270,6 +270,8 @@ pipeline will ensure you have a valid processing graph and will execute
 initialization code to ensure that the nodes are efficiently connected.
 Immediately after construction, the pipeline is ready to consume data.
 
+Consuming Iterables
+~~~~~~~~~~~~~~~~~~~
 When the ``.consume(iterable)`` method is called a sequence of events occur in
 exactly this order.
 
@@ -291,11 +293,62 @@ exactly this order.
 #. The ``.end()`` method of the pipeline is called.
 
 
+Manually feeding Pipeline
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+In addition to consuming iterables, you can manually feed pipelines using the
+``.push()`` method on the pipeline itself.  When you are finished pushing items,
+you can manually call the ``.end()`` method.  Here is an example.
+
+.. code-block:: python
+
+    from consecution import Node, Pipeline
+    from __future__ import print_function
+
+    class N(Node):
+        def process(self, item):
+            print(item)
+            self.push(item)
+
+    pipe = Pipeline(N('first') | N('second'))
+    for nn in range(2):
+        pipe.push(nn)
+    pipe.end()
 
 
+Pipeline API Documentation
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+Pipelines support dictionary-like access to their nodes.  Here are examples.
 
+.. code-block:: python
 
+    from consecution import Node, Pipeline
+
+    # Define a node 
+    class N(Node):
+        def process(self, item):
+            self.push(item)
+
+    # Create a pipeline with two nodes
+    pipe = Pipeline(N('first') | N('second'))
+
+    # Get reference to a node with dictionary syntax
+    first = pipe['first']
+
+    # Replace a node with dictionary-like syntax
+    pipe['first'] = N('first')
 
 
 .. autoclass:: consecution.pipeline.Pipeline
     :members:
+
+
+GlobalState
+-----------------
+The ``GlobalState`` class is a simple python class that supports both
+dictionary-like and object-like attribute access.  An object of this class will
+be used as the default ``global_state`` attribute of a pipeline if you don't
+explicitly provide one in the constructor.
+
+.. autoclass:: consecution.pipeline.GlobalState
+    :members:
+
