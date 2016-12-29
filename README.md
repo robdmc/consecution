@@ -211,7 +211,7 @@ and consuming `range(4)` produces this output
 ### Merging
 Up to this point, we have the ability to create processing trees where nodes
 can either broadcast to or route between their downstream nodes.  We can,
-however, do more then this and creat DAGs (Directed-Acyclic-Graphs).  Piping
+however, do more then this and create DAGs (Directed-Acyclic-Graphs).  Piping
 from a list back to a single node will merge the output of all nodes in the
 list together into the single downstream node like this.
 ```python
@@ -430,7 +430,7 @@ extractor processing 2
 ```
 
 ### Filter
-Filtering is a simple as placing the push statement behind a conditional. All
+Filtering is as simple as placing the push statement behind a conditional. All
 items that don't pass the conditional will not be pushed downstream, and thus
 silently dropped.
 ```python
@@ -460,7 +460,7 @@ extractor processing 3
 extractor processing 4
    loader processing 4
 extractor processing 5
-   loader processing 50  #TODO:  This doesn't look right
+   loader processing 5
 ```
 
 ### Group By
