@@ -111,6 +111,13 @@ Node API Documentation
 
 GroupBy Node
 ~~~~~~~~~~~~~~~~~~~~~~
+Consecution provides a special Node class specifically designed to do grouping.
+It works in much the sameway as Python's built in
+``itertools.groupby`` function.  It expects to process nodes in key-sorted
+order.  In addition to the ``.process()`` method required of all nodes, you must
+also define a ``.key()`` method that will extract a key from each item being
+processed.  See the Github project page for an example of using Groupby.
+
 .. autoclass:: consecution.nodes.GroupByNode
     :members:
 

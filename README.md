@@ -77,27 +77,27 @@ pipe = Pipeline(
     LogNode('extract') | LogNode('transform') | LogNode('load')
 )
 ```
-At this point, we can visualize the pipeline to verify that the topology is what
-we expect it to be.  If you installed consecution with visualization capability,
-you can now simply type one of the following to see the pipeline visualized.
+At this point, we can visualize the pipeline to verify that the topology is
+what we expect it to be.  If you Graphviz installed, you can now simply type
+one of the following to see the pipeline visualized.
 ```python
 # Create a pipeline.png file in your working directory
 pipe.plot()  
 
 # Interactively display the pipeline visualization in an IPython notebook
-# by simply making the pipeline be the last evalated value in a cell
+# by simply making the final expression in a cell evaluate to a pipeline.
 pipe
 ```
 The plot command should produce the following visualization.
 
 ![Output Image](/images/etl1.png?raw=true "Three Node ETL Example")
 
-If you didn't install visualization, printing the pipeline will give
-you a console-based representation.  The following command
+If you don't have Graphviz installed, you can print the pipeline
+object to get a text-based visualization.
 ```python
 print(pipe)
 ```
-represents your pipeline as a series of pipe statements showing
+This represents your pipeline as a series of pipe statements showing
 how data is piped between nodes.
 ```
 Pipeline
@@ -211,7 +211,7 @@ and consuming `range(4)` produces this output
 ### Merging
 Up to this point, we have the ability to create processing trees where nodes
 can either broadcast to or route between their downstream nodes.  We can,
-however, do more then this and creat DAGs (Directed-Acyclic-Graphs).  Piping
+however, do more then this and create DAGs (Directed-Acyclic-Graphs).  Piping
 from a list back to a single node will merge the output of all nodes in the
 list together into the single downstream node like this.
 ```python
@@ -430,7 +430,7 @@ extractor processing 2
 ```
 
 ### Filter
-Filtering is a simple as placing the push statement behind a conditional. All
+Filtering is as simple as placing the push statement behind a conditional. All
 items that don't pass the conditional will not be pushed downstream, and thus
 silently dropped.
 ```python
@@ -460,7 +460,7 @@ extractor processing 3
 extractor processing 4
    loader processing 4
 extractor processing 5
-   loader processing 50  #TODO:  This doesn't look right
+   loader processing 5
 ```
 
 ### Group By

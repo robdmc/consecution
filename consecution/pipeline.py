@@ -52,18 +52,10 @@ class Pipeline(object):
     :param global_state: Any python object you want to use for holding global
                          state.
 
-    You create nodes by inheriting from this class.  You will be required to
-    implement a `.process()` on your class.  You can call the `.push()` method
-    from anywhere in your class implementation except from within the
-    `.begin()` method.
-
-    Note that although this documentation refers to "the `.push` method",
-    `push` is actually  a callable attribute assigned when nodes are placed
-    into pipelines.
-
-    Its signature is `.push(item)`, where `item` can be anything you want pushed
-    to nodes connected to the downstream side of the node.
-
+    Once Nodes have been wired together, they must be placed in a pipeline in
+    order to process data.  If you would like to peform pipeline-level set up and
+    tear-down logic, you can subclass from Pipeline and override the
+    ``.begin()`` and ``end()`` methods.
     """
     def __init__(self, node, global_state=None):
         # get a reference to the top node of the connected nodes supplied.
