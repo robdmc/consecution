@@ -97,7 +97,7 @@ object to get a text-based visualization.
 ```python
 print(pipe)
 ```
-represents your pipeline as a series of pipe statements showing
+This represents your pipeline as a series of pipe statements showing
 how data is piped between nodes.
 ```
 Pipeline
