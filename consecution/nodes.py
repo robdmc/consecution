@@ -650,12 +650,27 @@ class GroupByNode(Node):
         self._previous_key = '__no_previous_key__'
 
     def key(self, item):
+        """
+        You must define this method.
+
+        :type item: object
+        :param item: The item you are processing
+
+        :rtype: hashable object
+        :return: a hashable object that serves as a key for the grouping process
+        """
         raise NotImplementedError(
             'you must define a .key(self, item) method on all '
             'GroupBy nodes.'
         )
 
     def process(self, batch):
+        """
+        You must define this method.
+        
+        :type batch: iterable
+        :param batch: A batch of items having the same key
+        """
         raise NotImplementedError(
             'You must define a .process(self, batch) method on all GroupBy '
             'nodes.'
