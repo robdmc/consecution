@@ -667,7 +667,7 @@ class GroupByNode(Node):
     def process(self, batch):
         """
         You must define this method.
-        
+
         :type batch: iterable
         :param batch: A batch of items having the same key
         """
