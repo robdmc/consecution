@@ -618,6 +618,12 @@ code is heavily commented to explain features of the consecution toolkit.
 ![Output Image](/images/gender_age.png?raw=true "Gender Age Pipeline")
 
 ```python
+from __future__ import print_function
+from collections import namedtuple
+from pprint import pprint
+import csv
+from consecution import Node, Pipeline, GlobalState
+
 # Named tuples are nice immutable containers 
 # for passing data between nodes
 Person = namedtuple('Person', 'gender age spent')
