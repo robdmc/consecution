@@ -92,8 +92,8 @@ The plot command should produce the following visualization.
 
 ![Output Image](/images/etl1.png?raw=true "Three Node ETL Example")
 
-If you didn't install visualization, printing the pipeline will give
-you a console-based representation.  The following command
+If you don't have Graphviz installed, you can print the pipeline
+object to get a text-based visualization.
 ```python
 print(pipe)
 ```
