@@ -77,15 +77,15 @@ pipe = Pipeline(
     LogNode('extract') | LogNode('transform') | LogNode('load')
 )
 ```
-At this point, we can visualize the pipeline to verify that the topology is what
-we expect it to be.  If you installed consecution with visualization capability,
-you can now simply type one of the following to see the pipeline visualized.
+At this point, we can visualize the pipeline to verify that the topology is
+what we expect it to be.  If you Graphviz installed, you can now simply type
+one of the following to see the pipeline visualized.
 ```python
 # Create a pipeline.png file in your working directory
 pipe.plot()  
 
 # Interactively display the pipeline visualization in an IPython notebook
-# by simply making the pipeline be the last evalated value in a cell
+# by simply making the final expression in a cell evaluate to a pipeline.
 pipe
 ```
 The plot command should produce the following visualization.
