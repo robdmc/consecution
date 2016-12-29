@@ -52,6 +52,6 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Topic :: Scientific/Engineering',
     ],
-    extras_require={'dev': ['nose', 'coverage', 'mock']},
+    extras_require={'dev': ['nose', 'coverage', 'mock', 'flake8', 'coveralls']},
     install_requires=['graphviz']
 )

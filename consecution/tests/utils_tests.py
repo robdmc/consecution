@@ -73,3 +73,23 @@ class ClockTests(TestCase):
         self.assertEqual(len(clock.delta), 1)
         clock.reset()
         self.assertEqual(len(clock.get_time()), 0)
+
+    def test_double_calls(self):
+        clock = Clock()
+        clock.start('a')
+        clock.start('a')
+        time.sleep(.1)
+        clock.stop('a')
+        clock.stop('a')
+        self.assertEqual(int(round(10 * clock.get_time())), 1)
+        clock.reset('a')
+        clock.reset('a')
+        clock.reset('b')
+        clock.reset('b')
+        self.assertEqual(clock.get_time(), {})
+
+    def test_get_time_delta_only(self):
+        clock = Clock()
+        clock.start('a')
+        clock.stop('a')
+        self.assertEqual(clock.get_time('f'), {})

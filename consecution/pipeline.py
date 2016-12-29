@@ -4,26 +4,59 @@ from consecution.nodes import GroupByNode
 
 class GlobalState(object):
     """
-    A simple class whos objects can absorb arbitrary user-defined attributes.
+    GlobalState is a simple container class that sets its attributes from
+    constructor kwargs.  It supports both object and dictionary access to its
+    attributes.  So, for example, all of the following statements are supported.
+
+    .. code-block:: python
+
+       from consecution import GlobalState
+
+       global_state = GlobalState(a=1, b=2)
+       global_state['c'] = 2
+       a = global_state['a']
+
+    An object of this class will be created as the default ``.global_state``
+    attribute on a Pipeline if you do not explicitely provide a global_state
+    argument to the constructor.
     """
-    def __init__(self, **kwargs):
+    # I'm using unconventional "_item_self_" name here to avoid
+    # conflicts when kwargs actually contain a "self" arg.
+
+    def __init__(_item_self, **kwargs):
         for key, val in kwargs.items():
-            self[key] = val
+            _item_self[key] = val
 
-    def __str__(self):
-        return 'GlobalState attributes: ' + str(sorted(vars(self).keys()))
+    def __str__(_item_self):
+        quoted_keys = [
+            '\'{}\''.format(k) for k in sorted(vars(_item_self).keys())]
+        att_string = ', '.join(quoted_keys)
+        return 'GlobalState({})'.format(att_string)
 
-    def __repr__(self):
-        return self.__str__()
+    def __repr__(_item_self):
+        return _item_self.__str__()
 
-    def __setitem__(self, key, value):
-        setattr(self, key, value)
+    def __setitem__(_item_self, key, value):
+        setattr(_item_self, key, value)
 
-    def __getitem__(self, key):
-        return getattr(self, key)
+    def __getitem__(_item_self, key):
+        return getattr(_item_self, key)
 
 
 class Pipeline(object):
+    """
+    :type node: Node
+    :param node: Any node in a connected graph
+
+    :type global_state:  object
+    :param global_state: Any python object you want to use for holding global
+                         state.
+
+    Once Nodes have been wired together, they must be placed in a pipeline in
+    order to process data.  If you would like to peform pipeline-level set up and
+    tear-down logic, you can subclass from Pipeline and override the
+    ``.begin()`` and ``end()`` methods.
+    """
     def __init__(self, node, global_state=None):
         # get a reference to the top node of the connected nodes supplied.
         self.top_node = node.top_node
@@ -143,61 +176,41 @@ class Pipeline(object):
         pre/post hooks for when they are called either on the pipeline
         class or on any class derived from it.
         """
-        trapped_names = {
-            'begin',
-            'end',
-            'reset'
-        }
-        if name in trapped_names:
+        if name == 'begin':
             def wrapper():
                 super(Pipeline, self).__getattribute__(name)()
-                return self.__class__.__dict__['_{}'.format(name)](self)
+                self._begin()
+            return wrapper
+        elif name == 'end':
+            def wrapper():
+                self._end()
+                return super(Pipeline, self).__getattribute__(name)()
+            return wrapper
+        elif name == 'reset':
+            def wrapper():
+                self._reset()
+                return super(Pipeline, self).__getattribute__(name)()
             return wrapper
         else:
             return super(Pipeline, self).__getattribute__(name)
 
-    # def __getattribute__orig(self, name):
-    #     """
-    #     This should trap for the begin() and end() method calls and install
-    #     pre/post hooks for when they are called either on the pipeline
-    #     class or on any class derived from it.
-    #     """
-    #     if name == 'begin':
-    #         def wrapper():
-    #             super(Pipeline, self).__getattribute__(name)()
-    #             self._begin()
-    #         return wrapper
-    #     elif name == 'end':
-    #         def wrapper():
-    #             self._end()
-    #             return super(Pipeline, self).__getattribute__(name)()
-    #         return wrapper
-    #     elif name == 'reset':
-    #         def wrapper():
-    #             self._reset()
-    #             return super(Pipeline, self).__getattribute__(name)()
-    #         return wrapper
-    #     else:
-    #         return super(Pipeline, self).__getattribute__(name)
-
     def begin(self):
         """
-        Users can override these methods in derived classes.  They have
-        no action here in base class, but the pre/post hooks are called
-        to perform the necessary actions.
+        Override this method to execute any logic you want to perform before
+        setting up nodes.  The ``.begin()`` method of all nodes will be called.
         """
 
     def end(self):
         """
-        Users can override these methods in derived classes.  They have
-        no action here in base class, but the pre/post hooks are called
-        to perform the necessary actions.
-        TODO: make sure you remember that the end method can return a value
+        Override this method to execute any logic you want to perform after
+        all nodes are done processing data. The ``.end()`` method of all nodes
+        will be called.
         """
 
     def reset(self):
         """
-        User can override this to do whatever logic they want
+        Override this with any logic you'd like to perform for resetting the
+        pipeline. The ``.reset()`` method of all nodes will be called.
         """
 
     def _reset(self):
@@ -213,21 +226,41 @@ class Pipeline(object):
         self._is_running = False
 
     def push(self, item):
+        """
+        You can manually push items to your pipeline using this meethod.
+
+        :type item: object
+        :param item: Any object you would like the pipeline to process
+        """
         if not self._is_running:
             self.begin()
         self.top_node._process(item)
 
     def consume(self, iterable):
         """
-        TODO: document that the consume method returns the result
-        of the pipeline end method.
+        The pipeline will process each item in the iterable.
+
+        :type iterable: A Python Iterable
+        :param iterable: An iterable of objects you would like to process
         """
         self.begin()
         for item in iterable:
             self.top_node._process(item)
         return self.end()
 
-    def plot(self, file_name='pipeline', kind='png', notebook=False):
+    def plot(self, file_name='pipeline', kind='png'):
+        """
+        Call this method to produce a visualization of your pipeline.  The
+        Graphviz library will be used to generate the image file.  Note that
+        pipelines are automatically visualized in IPython notebook when they are
+        evaluated as the last expression in a cell.
+
+        :type file_name: str
+        :param file_name: The name of the image file to save
+
+        :type kind: str
+        :param kind: The type of image file to produce (png, pdf)
+        """
         self.top_node.plot(file_name, kind)
         return self
 

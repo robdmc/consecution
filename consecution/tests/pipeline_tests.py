@@ -94,9 +94,9 @@ class GlobalStateUnitTests(TestCase):
             print(repr(g))
 
         self.assertTrue(
-            'GlobalState attributes: [\'custom_name\']' in catcher1.txt)
+            'GlobalState(\'custom_name\')' in catcher1.txt)
         self.assertTrue(
-            'GlobalState attributes: [\'custom_name\']' in catcher2.txt)
+            'GlobalState(\'custom_name\')' in catcher2.txt)
 
 
 class OrOpTests(TestCase):
@@ -264,6 +264,15 @@ class ReplacementTests(TestBase):
             self.pipeline.consume(item_generator())
         self.assertEqual(printer.txt.count('1'), 2)
         self.assertEqual(printer.txt.count('20'), 2)
+
+    def test_replace_no_router(self):
+        a = TestNode('a')
+        b = TestNode('b')
+        pipe = Pipeline(a | b)
+        pipe['b'] = TestNode('b')
+        with print_catcher() as catcher:
+            print(pipe)
+        self.assertTrue('a | b' in catcher.txt)
 
 
 class ConsumingTests(TestBase):
