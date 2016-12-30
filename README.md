@@ -50,6 +50,7 @@ contains whatever logic you want for processing single items as they pass throug
 pipeline.  Here is an example of a node that simply logs items passing through it.
 ```python
 from consecution import Node
+
 class LogNode(Node):
     def process(self, item):
         # any logic you want for processing single item 
