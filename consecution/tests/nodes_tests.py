@@ -8,7 +8,6 @@ import subprocess
 from mock import patch
 
 from consecution.nodes import Node
-from consecution.tests.testing_helpers import print_catcher
 
 
 def dot_installed():
