@@ -10,6 +10,7 @@ from mock import patch
 from consecution.nodes import Node
 from consecution.tests.testing_helpers import print_catcher
 
+
 def dot_installed():
     p = subprocess.Popen(
         ['bash', '-c', 'which dot'], stdout=subprocess.PIPE)
@@ -21,10 +22,13 @@ def dot_installed():
 class FakeDigraph(object):  # pragma: no cover
     def __init__(self, *args, **kwargs):
         pass
+
     def node(self, *args, **kwargs):
         pass
+
     def edge(self, *args, **kwargs):
         pass
+
     def render(self, *args, **kwargs):
         raise RuntimeError('fake runtime error')
 
@@ -58,15 +62,6 @@ class NodeUnitTests(TestCase):
         a = Node('a')
         with self.assertRaises(ValueError):
             a | 7
-
-    #def test_remove_non_existent_node(self):
-    #    a = Node('a')
-    #    b = Node('b')
-    #    c = Node('c')
-    #    a.add_downstream(b)
-    #    a.remove_downstream(c)
-
-
 
     @patch(
         'consecution.nodes.Node._build_pydot_graph', lambda a: FakeDigraph())
@@ -114,7 +109,7 @@ class ExplicitWiringTests(TestCase):
         i = Node('i')
         j = Node('j')
         k = Node('k')
-        l = Node('l')
+        l = Node('l') # noqa.  okay to use l as var here
         m = Node('m')
         n = Node('n')
 
@@ -170,7 +165,7 @@ class ExplicitWiringTests(TestCase):
         i = Node('i')
         j = Node('j')
         k = Node('k')
-        l = Node('l')
+        l = Node('l') # noqa.  okay to use l as var here
         m = Node('m')
         n = Node('n')
 
@@ -178,15 +173,13 @@ class ExplicitWiringTests(TestCase):
         self.node_list = [a, b, c, d, e, f, g, h, i, j, k, l, m, n]
         self.top_node = a
 
-        # wire up nodes using dsl (if statement just to make flake8 work)
-        if True:  # flake8: noqa
-            a | [
-                   b,
-                   c | [
-                           d,
-                           e  | [f, g, h, i] | j
-                       ] | k
-                ] | l | [m, n]
+        a | [  # noqa
+               b,
+               c | [
+                       d,
+                       e | [f, g, h, i] | j
+                   ] | k
+            ] | l | [m, n]
 
     def test_connections(self):
         Conns = namedtuple('Conns', 'node upstreams downstreams')
@@ -209,7 +202,7 @@ class ExplicitWiringTests(TestCase):
         self.assertEqual(n['c'].downstreams, {'d', 'e'})
 
         self.assertEqual(n['e'].upstreams, {'c'})
-        self.assertEqual(n['e'].downstreams, {'f','g','h','i'})
+        self.assertEqual(n['e'].downstreams, {'f', 'g', 'h', 'i'})
 
         self.assertEqual(n['f'].upstreams, {'e'})
         self.assertEqual(n['f'].downstreams, {'j'})
@@ -226,7 +219,7 @@ class ExplicitWiringTests(TestCase):
         self.assertEqual(n['d'].upstreams, {'c'})
         self.assertEqual(n['d'].downstreams, {'k'})
 
-        self.assertEqual(n['j'].upstreams, {'f','g','h','i'})
+        self.assertEqual(n['j'].upstreams, {'f', 'g', 'h', 'i'})
         self.assertEqual(n['j'].downstreams, {'k'})
 
         self.assertEqual(n['k'].upstreams, {'j', 'd'})
@@ -253,7 +246,7 @@ class ExplicitWiringTests(TestCase):
         self.do_wiring()
 
         # this test is funky in that it has assertion in a loop.
-        # but I wanted to be sure cycles are detected everywhere 
+        # but I wanted to be sure cycles are detected everywhere
         for name in [n.name for n in self.top_node.all_nodes]:
             dup = Node(name)
             with self.assertRaises(ValueError):
@@ -263,7 +256,7 @@ class ExplicitWiringTests(TestCase):
         self.do_wiring()
 
         # this test is funky in that it has assertion in a loop.
-        # but I wanted to be sure dups are detected everywhere 
+        # but I wanted to be sure dups are detected everywhere
         for node in self.top_node.all_nodes:
             with self.assertRaises(ValueError):
                 node.add_downstream(self.top_node)
@@ -285,11 +278,11 @@ class ExplicitWiringTests(TestCase):
     def test_write(self):
         # don't run coverage on this because won't test travis with
         # both dot installed and not installed.
-        if dot_installed(): # pragma: no cover 
+        if dot_installed():  # pragma: no cover
             self.do_wiring()
             out_file = os.path.join(self.temp_dir, 'out.png')
             self.top_node.plot(out_file)
-            #uncomment the next line if you want to look at the graph
+            # uncomment the next line if you want to look at the graph
             os.system('cp {} /tmp'.format(out_file))
 
     def test_write_bad_kind(self):
@@ -312,6 +305,7 @@ class DSLWiringTests(ExplicitWiringTests):
     def do_wiring(self):
         self.do_graph_wiring()
 
+
 class TopDownCallTests(TestCase):
     def test_call_order_okay(self):
 
@@ -319,6 +313,7 @@ class TopDownCallTests(TestCase):
         # tracking what order objects get called in
         class MyNode(Node):
             call_list = []
+
             def end(self):
                 self.__class__.call_list.append(self)
 
@@ -333,7 +328,7 @@ class TopDownCallTests(TestCase):
         a | [
             b | c,
             d | e | f
-        ] |  g
+        ] | g
         a.top_node.top_down_call('end')
 
         # make a dictionary with order in which nodes
@@ -361,7 +356,6 @@ class BreadthFirstSearchTests(TestCase):
         d = Node('d')
         e = Node('e')
         f = Node('f')
-        g = Node('g')
         h = Node('h')
         i = Node('i')
 
@@ -369,7 +363,7 @@ class BreadthFirstSearchTests(TestCase):
             return 0
 
         a | [b, c] | [d, e, f, silly_router] | [h, i]
-        nodes =  a.top_node.breadth_first_walk(
+        nodes = a.top_node.breadth_first_walk(
             direction='down', as_ordered_list=True)
         level5 = {nodes.pop() for nn in range(2)}
         level4 = {nodes.pop() for nn in range(3)}
@@ -390,14 +384,13 @@ class BreadthFirstSearchTests(TestCase):
         d = Node('d')
         e = Node('e')
         f = Node('f')
-        g = Node('g')
         h = Node('h')
 
         def silly_router(item):  # pragma: no cover
             return 0
 
         a | [b, c] | [d, e, f, silly_router] | h
-        nodes =  h.breadth_first_walk(direction='up', as_ordered_list=True)
+        nodes = h.breadth_first_walk(direction='up', as_ordered_list=True)
         nodes = nodes[::-1]
         level5 = {nodes.pop() for nn in range(1)}
         level4 = {nodes.pop() for nn in range(3)}
@@ -410,6 +403,7 @@ class BreadthFirstSearchTests(TestCase):
         self.assertEqual(len(level3), 2)
         self.assertEqual(level4, {d, e, f})
         self.assertEqual(level5, {h})
+
 
 class PrintingTests(TestCase):
     def setUp(self):
@@ -425,7 +419,7 @@ class PrintingTests(TestCase):
         i = Node('i')
         j = Node('j')
         k = Node('k')
-        l = Node('l')
+        l = Node('l') # noqa okay to use l here
         m = Node('m')
         n = Node('n')
 
@@ -443,10 +437,10 @@ class PrintingTests(TestCase):
 
         # wire up nodes using dsl
         a | [
-               b,
+               b,  # noqa
                c | [
                        d,
-                       e  | [f, g, h, i] | j
+                       e | [f, g, h, i] | j
                    ] | k
             ] | l | [m, n, my_router]
 
@@ -485,15 +479,6 @@ class RoutingTests(TestCase):
         c = Node('c')
         d = Node('d')
         e = Node('e')
-        f = Node('f')
-        g = Node('g')
-        h = Node('h')
-        i = Node('i')
-        j = Node('j')
-        k = Node('k')
-        m = Node('m')
-        bb = Node('bb')
-        ee = Node('ee')
 
         def silly_router(item):  # pragma: no cover
             return 0
@@ -502,4 +487,4 @@ class RoutingTests(TestCase):
             def __call__(self, arg):
                 return arg
 
-        a | [b, c, ClassRouter()] |[d, e, silly_router]
+        a | [b, c, ClassRouter()] | [d, e, silly_router]
