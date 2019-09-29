@@ -70,9 +70,7 @@ class NodeUnitTests(TestCase):
         b = Node('b')
         p = a | b
         with self.assertRaises(RuntimeError):
-            with print_catcher('stderr') as printer:
-                p.plot()
-        self.assertTrue('graphviz' in printer.txt)
+            p.plot()
 
     def test_no_getitem(self):
         a = Node('a')

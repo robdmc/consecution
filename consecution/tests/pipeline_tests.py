@@ -137,8 +137,7 @@ class PipelineUnitTests(TestCase):
     def test_push_in_begin(self):
         pipeline = Pipeline(BadNode('a') | TestNode('b'))
         with self.assertRaises(AttributeError):
-            with print_catcher('stderr'):
-                pipeline.begin()
+            pipeline.begin()
 
     def test_no_process(self):
         class N(Node):
