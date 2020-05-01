@@ -1,3 +1,9 @@
+Update (5/1/2020)
+===
+Since writing this, the excellent [streamz](https://streamz.readthedocs.io/en/latest/) package has been created.  Streamz
+is the project I wish had existed back when I wrote this.  It is a much more capable implementation of the of the core 
+ideas of consecution, and plays nicely with [dask](https://dask.org/) to achieve scale.  I have started using streamz in my work in place of consecution.
+
 Consecution
 ===
 [![Build Status](https://travis-ci.org/robdmc/consecution.svg?branch=develop)](https://travis-ci.org/robdmc/consecution)
