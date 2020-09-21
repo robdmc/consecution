@@ -1,3 +1,8 @@
+Update (9/21/2020)
+===
+Another library that I believe to be better than consecution is the [pypeln](https://cgarciae.github.io/pypeln/) project.  The way it allows for a different number of workers on each node of a pipeline is quite nice.  Additionally the ability to control whether each node is run using threads, processes, async, or sync is really useful.
+
+
 Update (5/1/2020)
 ===
 Since writing this, the excellent [streamz](https://streamz.readthedocs.io/en/latest/) package has been created.  Streamz
